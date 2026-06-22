@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f3eee8">
+  <title>École — educator workspace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <div class="ambient ambient-a" aria-hidden="true"></div>
+  <div class="ambient ambient-b" aria-hidden="true"></div>
+
+  <div class="shell">
+    <aside class="sidebar glass">
+      <a class="brand" href="#" aria-label="École">
+        <span class="brand-mark">é</span>
+        <span>école<span class="brand-dot">.</span></span>
+      </a>
+
+      <nav class="main-nav" aria-label="Основная навигация">
+        <button class="nav-item active" data-view="today"><span class="nav-icon">⌁</span><span>Сегодня</span></button>
+        <button class="nav-item" data-view="schedule"><span class="nav-icon">□</span><span>Расписание</span></button>
+        <button class="nav-item" data-view="students"><span class="nav-icon">◌</span><span>Ученики и группы</span><span class="nav-count">15</span></button>
+        <button class="nav-item" data-view="library"><span class="nav-icon">◇</span><span>Материалы</span></button>
+        <button class="nav-item" data-view="homework"><span class="nav-icon">✓</span><span>Домашние задания</span><span class="nav-count alert" id="homeworkNavCount">4</span></button>
+        <button class="nav-item" data-view="messages"><span class="nav-icon">✉</span><span>Сообщения</span><span class="nav-count alert" id="messagesNavCount">3</span></button>
+        <button class="nav-item" data-view="profile"><span class="nav-icon">◉</span><span>Мой профиль</span></button>
+      </nav>
+
+      <div class="sidebar-spacer"></div>
+
+      <button class="profile" data-view-jump="profile">
+        <span class="avatar" id="sidebarAvatar">AK</span>
+        <span><strong id="sidebarName">Алина Ким</strong><small id="sidebarSubject">3D · дизайн</small></span>
+        <span class="more">•••</span>
+      </button>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div class="mobile-brand">école.</div>
+        <div class="topbar-actions">
+          <button class="icon-button" aria-label="Поиск">⌕</button>
+          <button class="icon-button notification" aria-label="Уведомления">◔<i></i></button>
+          <button class="primary-button" id="newLesson"><span>＋</span> Новое занятие</button>
+        </div>
+      </header>
+
+      <section class="view active" id="today" aria-labelledby="today-title">
+        <header class="today-header reveal">
+          <div>
+            <div class="kicker"><span></span> Пятница, 19 июня</div>
+            <h1 id="today-title">Добрый день, Алина</h1>
+            <p id="todayLessonSummary">Первый урок в 14:30 · до него 2 часа 18 минут</p>
+          </div>
+          <div class="header-tools">
+            <button class="soft-button">Настроить вид</button>
+            <button class="black-button quick-plan">＋ Запланировать</button>
+          </div>
+        </header>
+
+        <div class="stat-strip reveal">
+          <article><span class="stat-icon rose-bg">▣</span><div><small>Уроков сегодня</small><strong>3</strong></div><em>4 ч 05 мин</em></article>
+          <article><span class="stat-icon lilac-bg">◌</span><div><small>Активных учеников</small><strong>12</strong></div><em>＋2 в июне</em></article>
+          <article><span class="stat-icon peach-bg">✓</span><div><small>Домашних на проверке</small><strong>4</strong></div><em class="urgent">2 сегодня</em></article>
+          <article><span class="stat-icon blue-bg">✉</span><div><small>Новых сообщений</small><strong>3</strong></div><em>1 от родителя</em></article>
+        </div>
+
+        <div class="ops-layout">
+          <div class="ops-main">
+            <article class="agenda-panel panel reveal">
+              <div class="section-heading">
+                <div><span class="eyebrow">Расписание дня</span><h3>Пятница</h3></div>
+                <div class="agenda-actions"><button class="soft-button">День</button><div class="date-switch"><button>‹</button><span>19 июня</span><button>›</button></div></div>
+              </div>
+              <div class="agenda-timeline">
+                <div class="agenda-hour"><time>13:00</time><span></span></div>
+                <div class="agenda-event primary-event" data-start-in-minutes="138"><time>14:30<small>15:50</small></time><div><span class="event-type">Групповой урок · Blender</span><h4>Свет и материалы</h4><div class="event-students"><div class="student-stack"><span>М</span><span>Е</span><span>К</span><span>＋1</span></div><span>4 ученика · все подтвердили</span></div></div><button data-today-lesson="light-materials">Подготовиться ↗</button></div>
+                <div class="agenda-event compact blue-event" data-start-in-minutes="288"><time>17:00<small>18:00</small></time><div><span class="event-type">Индивидуально · Figma</span><h4>Первый лендинг</h4><p>Илья Ветров</p></div><button data-today-lesson="ilya-figma">Подготовиться ↗</button></div>
+                <div class="agenda-event compact dark-event" data-start-in-minutes="408"><time>19:00<small>19:45</small></time><div><span class="event-type">Менторинг · Portfolio</span><h4>Разбор третьего кейса</h4><p>София Ли</p></div><button data-today-lesson="sofia-portfolio">Подготовиться ↗</button></div>
+              </div>
+            </article>
+
+            <article class="weekload panel reveal">
+              <div class="card-head"><div><span class="eyebrow">Загрузка недели</span><h3>18 уроков · 22,5 часа</h3></div><button class="soft-button">Открыть календарь</button></div>
+              <div class="week-bars"><div><i style="--h:58%"></i><span>Пн<small>3</small></span></div><div><i style="--h:82%"></i><span>Вт<small>4</small></span></div><div><i style="--h:43%"></i><span>Ср<small>2</small></span></div><div><i style="--h:96%"></i><span>Чт<small>5</small></span></div><div class="current"><i style="--h:68%"></i><span>Пт<small>3</small></span></div><div><i style="--h:24%"></i><span>Сб<small>1</small></span></div><div><i style="--h:3%"></i><span>Вс<small>0</small></span></div></div>
+            </article>
+          </div>
+
+          <aside class="ops-side">
+            <article class="next-compact panel gradient-panel reveal">
+              <div class="card-head"><span class="eyebrow">Ближайший урок</span><span class="live-in" id="nextLessonCountdown">через 2 ч 18 мин</span></div>
+              <strong>14:30</strong><h3>Свет и материалы</h3><p>Группа Blender · 4 ученика</p>
+              <button data-today-lesson="light-materials" id="nextLessonAction">Подготовиться <span>↗</span></button>
+            </article>
+            <article class="tasks panel reveal">
+              <div class="card-head"><div><span class="eyebrow">Задачи</span><h3>На сегодня</h3></div><button class="round-add">＋</button></div>
+              <label><input type="checkbox"><span>Проверить работу Маши</span><small>13:00</small></label>
+              <label><input type="checkbox"><span>Подготовить материалы к групповому уроку</span><small>до 14:00</small></label>
+              <label><input type="checkbox"><span>Ответить маме Артёма</span><small>сегодня</small></label>
+              <label class="done"><input type="checkbox" checked><span>Отправить ссылку группе</span><small>готово</small></label>
+              <button class="text-action">Все задачи →</button>
+            </article>
+            <article class="activity panel reveal">
+              <div class="card-head"><div><span class="eyebrow">Ученики</span><h3>Последняя активность</h3></div><button class="mini-button">•••</button></div>
+              <div class="activity-item"><span class="avatar peach">МС</span><p><b>Маша</b> загрузила проект<small>8 минут назад</small></p><span class="activity-file">BLEND</span></div>
+              <div class="activity-item"><span class="avatar lilac">СЛ</span><p><b>София</b> оставила сообщение<small>34 минуты назад</small></p><span class="activity-arrow">↗</span></div>
+              <div class="activity-item warning"><span class="avatar blue">АБ</span><p><b>Артём</b> пропустил занятие<small>вчера, 18:00</small></p><span class="activity-arrow">!</span></div>
+            </article>
+            <article class="focus-mini panel dark reveal"><div class="card-head"><span class="eyebrow">Фокус недели</span><span>76%</span></div><p>9 из 12 учеников идут по плану</p><div class="focus-line"><span></span></div></article>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view legacy-view" id="legacy-today" aria-labelledby="legacy-title">
+        <div class="hero-grid">
+          <article class="hero-copy reveal">
+            <div class="kicker"><span></span> Пятница, 19 июня</div>
+            <h1 id="legacy-title">Учить.<br><em>Вдохновлять.</em><br>Расти.</h1>
+            <p>Всё, что нужно для вашей практики —<br>в одном красивом рабочем пространстве.</p>
+          </article>
+
+          <article class="next-session glass-card reveal">
+            <div class="card-head">
+              <span class="eyebrow">Следующее занятие</span>
+              <button class="mini-button">•••</button>
+            </div>
+            <div class="session-time">14:30 <span>— 15:50</span></div>
+            <h2>Свет и материалы<br>в Blender</h2>
+            <div class="session-meta">
+              <div class="student-stack"><span>М</span><span>Е</span><span>＋2</span></div>
+              <span>Группа · 4 ученика</span>
+            </div>
+            <button class="session-cta" data-view-jump="lesson"><span>Войти в студию</span><b>↗</b></button>
+            <div class="orb orb-one"></div><div class="orb orb-two"></div>
+          </article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="schedule-card panel reveal">
+            <div class="section-heading">
+              <div><span class="eyebrow">План дня</span><h3>Сегодня</h3></div>
+              <div class="date-switch"><button>‹</button><span>19 июня</span><button>›</button></div>
+            </div>
+            <div class="timeline">
+              <div class="timeline-row muted"><time>10:00</time><div class="line"></div><p>Фокус-время <small>Подготовка материалов</small></p><span>60 мин</span></div>
+              <div class="timeline-row rose"><time>14:30</time><div class="line"></div><p>Свет и материалы <small>Группа · Blender</small></p><span>80 мин</span></div>
+              <div class="timeline-row blue"><time>17:00</time><div class="line"></div><p>Первый лендинг <small>Илья · Figma</small></p><span>60 мин</span></div>
+              <div class="timeline-row lime"><time>19:00</time><div class="line"></div><p>Portfolio review <small>София · Mentoring</small></p><span>45 мин</span></div>
+            </div>
+          </article>
+
+          <article class="focus-card panel dark reveal">
+            <div class="card-head"><span class="eyebrow">Фокус недели</span><span class="index">03 / 05</span></div>
+            <h3>Не просто проводить уроки — создавать <em>траектории.</em></h3>
+            <div class="progress-ring"><span>76<small>%</small></span></div>
+            <p>9 из 12 учеников движутся<br>по плану этого месяца.</p>
+          </article>
+
+          <article class="metric panel gradient-panel reveal">
+            <span class="eyebrow">Июнь · доход</span>
+            <strong>184 500<span>₽</span></strong>
+            <div class="metric-bottom"><span>↗ 18% к маю</span><div class="spark"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+          </article>
+
+          <article class="tasks panel reveal">
+            <div class="card-head"><span class="eyebrow">Тихая рутина</span><button class="round-add">＋</button></div>
+            <h3>Нужно сделать</h3>
+            <label><input type="checkbox"><span>Проверить работу Маши</span><small>до 13:00</small></label>
+            <label><input type="checkbox"><span>Собрать референсы к уроку</span><small>сегодня</small></label>
+            <label class="done"><input type="checkbox" checked><span>Отправить отчёт родителю</span><small>готово</small></label>
+          </article>
+        </div>
+      </section>
+
+      <section class="view schedule-view" id="schedule" aria-labelledby="schedule-title">
+        <header class="schedule-header reveal">
+          <div>
+            <div class="kicker"><span></span> Рабочая неделя</div>
+            <h1 id="schedule-title">Расписание</h1>
+          </div>
+          <div class="schedule-controls">
+            <button class="soft-button today-button">Сегодня</button>
+            <div class="calendar-nav"><button aria-label="Предыдущая неделя">‹</button><strong>22–28 июня 2026</strong><button aria-label="Следующая неделя">›</button></div>
+            <div class="view-switch"><button class="active">Неделя</button><button>Месяц</button></div>
+            <button class="black-button schedule-add">＋ Занятие</button>
+          </div>
+        </header>
+
+        <div class="schedule-shell reveal" id="scheduleShell">
+          <section class="calendar-card panel" aria-label="Календарь на неделю">
+            <div class="calendar-days">
+              <span></span>
+              <button><small>Пн</small><b>22</b></button>
+              <button><small>Вт</small><b>23</b></button>
+              <button class="current"><small>Ср</small><b>24</b></button>
+              <button><small>Чт</small><b>25</b></button>
+              <button><small>Пт</small><b>26</b></button>
+              <button><small>Сб</small><b>27</b></button>
+              <button><small>Вс</small><b>28</b></button>
+            </div>
+            <div class="calendar-scroll">
+              <div class="calendar-canvas">
+                <div class="time-labels"><span>09:00</span><span>10:00</span><span>11:00</span><span>12:00</span><span>13:00</span><span>14:00</span><span>15:00</span><span>16:00</span><span>17:00</span><span>18:00</span><span>19:00</span><span>20:00</span></div>
+                <div class="day-columns"><i></i><i></i><i class="current-column"></i><i></i><i></i><i></i><i></i></div>
+                <div class="now-line"><span>сейчас</span></div>
+                <div class="event-layer">
+                  <button class="calendar-event rose-event" style="grid-column:1;grid-row:3 / span 3" data-lesson="olga-python"><small>10:00–11:30</small><strong>Python: функции</strong><span>Оля · индивидуально</span><i>PY</i></button>
+                  <button class="calendar-event lavender-event" style="grid-column:2;grid-row:7 / span 4" data-lesson="blender-group"><small>12:00–14:00</small><strong>Моделирование сцены</strong><span>Blender Junior · 4 ученика</span><i>3D</i></button>
+                  <button class="calendar-event blue-event" style="grid-column:3;grid-row:12 / span 3" data-lesson="ilya-figma"><small>14:30–16:00</small><strong>Первый лендинг</strong><span>Илья · Figma</span><i>UI</i></button>
+                  <button class="calendar-event peach-event" style="grid-column:3;grid-row:17 / span 3" data-lesson="sofia-portfolio"><small>17:00–18:30</small><strong>Portfolio review</strong><span>София · менторинг</span><i>PR</i></button>
+                  <button class="calendar-event lime-event" style="grid-column:4;grid-row:5 / span 4" data-lesson="english-group"><small>11:00–13:00</small><strong>Speaking club</strong><span>English B1 · группа</span><i>EN</i></button>
+                  <button class="calendar-event rose-event" style="grid-column:5;grid-row:12 / span 4" data-lesson="light-materials"><small>14:30–16:30</small><strong>Свет и материалы</strong><span>Blender · 4 ученика</span><i>3D</i></button>
+                  <button class="calendar-event dark-calendar-event" style="grid-column:6;grid-row:7 / span 3" data-lesson="artem-python"><small>12:00–13:30</small><strong>Игровая логика</strong><span>Артём · Python</span><i>PY</i></button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside class="lesson-drawer" id="lessonDrawer" aria-live="polite">
+            <div class="drawer-top">
+              <div><span class="drawer-status" id="drawerStatus">Запланировано</span><small id="drawerDate">Понедельник, 22 июня</small></div>
+              <button class="drawer-close" aria-label="Закрыть карточку урока">×</button>
+            </div>
+            <div class="drawer-person">
+              <span class="avatar large peach" id="drawerAvatar">ОК</span>
+              <div><h2 id="drawerStudent">Оля Крылова</h2><p id="drawerCourse">Python · индивидуально</p></div>
+              <button class="mini-button">•••</button>
+            </div>
+            <div class="drawer-time"><div><small>Время</small><strong id="drawerTime">10:00–11:30</strong></div><div><small>Урок</small><strong id="drawerLessonNumber">№ 8</strong></div></div>
+            <div class="lesson-color-editor">
+              <div><span>Цвет занятия</span><strong id="lessonColorName">Розовый</strong></div>
+              <div class="lesson-color-swatches" role="group" aria-label="Выберите цвет занятия">
+                <button class="active" type="button" data-lesson-color="rose-event" data-color-name="Розовый" aria-label="Розовый цвет"></button>
+                <button type="button" data-lesson-color="lavender-event" data-color-name="Лавандовый" aria-label="Лавандовый цвет"></button>
+                <button type="button" data-lesson-color="blue-event" data-color-name="Голубой" aria-label="Голубой цвет"></button>
+                <button type="button" data-lesson-color="peach-event" data-color-name="Персиковый" aria-label="Персиковый цвет"></button>
+                <button type="button" data-lesson-color="lime-event" data-color-name="Лаймовый" aria-label="Лаймовый цвет"></button>
+                <button type="button" data-lesson-color="dark-calendar-event" data-color-name="Графитовый" aria-label="Графитовый цвет"></button>
+              </div>
+            </div>
+            <div class="drawer-tabs" role="tablist"><button class="active" data-drawer-tab="overview">Урок</button><button data-drawer-tab="materials">Материалы <span id="materialCount">3</span></button><button data-drawer-tab="history">История</button></div>
+
+            <div class="drawer-tab active" data-drawer-panel="overview">
+              <div class="lesson-summary"><span class="eyebrow">Тема</span><h3 id="drawerTitle">Python: функции</h3><p id="drawerDescription">Разобрать аргументы функций, области видимости и закрепить тему на небольшой практике.</p></div>
+              <div class="lesson-readiness"><div class="readiness-head"><span>Готовность урока</span><strong id="readinessValue">75%</strong></div><div class="readiness-line"><span id="readinessLine" style="width:75%"></span></div><ul><li class="ready">План занятия</li><li class="ready">Материалы ученика</li><li>Домашнее задание</li></ul></div>
+              <button class="drawer-action course-link" id="openDrawerCourse">Открыть ученика и курс <span>↗</span></button>
+              <button class="drawer-action secondary prepare-board">◇ Подготовить доску <span>↗</span></button>
+              <button class="drawer-action primary join-call">Начать звонок заранее <span>↗</span></button>
+            </div>
+
+            <div class="drawer-tab" data-drawer-panel="materials">
+              <div class="material-destination"><span class="eyebrow">Куда добавить</span><div class="destination-switch"><button class="active" data-destination="lesson">В этот урок</button><button data-destination="student">В папку ученика</button></div></div>
+              <div class="materials-list" id="materialsList">
+                <article><span class="file-icon rose-bg">PDF</span><div><strong>Функции — конспект</strong><small>1,8 МБ · PDF</small></div><button>•••</button></article>
+                <article><span class="file-icon lilac-bg">PY</span><div><strong>practice_08.py</strong><small>12 КБ · Код</small></div><button>•••</button></article>
+                <article><span class="file-icon blue-bg">URL</span><div><strong>Тренажёр по функциям</strong><small>Внешняя ссылка</small></div><button>•••</button></article>
+              </div>
+              <button class="upload-zone" id="addMaterial"><span>＋</span><strong>Добавить материал</strong><small>Файл, ссылка или материал из библиотеки</small></button>
+              <input type="file" id="materialInput" hidden multiple>
+            </div>
+
+            <div class="drawer-tab" data-drawer-panel="history">
+              <div class="history-head"><span class="eyebrow">Прошедшие занятия</span><strong>7 уроков</strong></div>
+              <div class="history-list" id="historyList">
+                <button><time>15 июня</time><div><strong>Циклы и коллекции</strong><small>Домашнее выполнено</small></div><span>↗</span></button>
+                <button><time>8 июня</time><div><strong>Условия и логика</strong><small>Есть запись · 58 мин</small></div><span>↗</span></button>
+                <button><time>1 июня</time><div><strong>Переменные и типы</strong><small>Есть заметки</small></div><span>↗</span></button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view profile-view" id="profile" aria-labelledby="profile-title">
+        <header class="profile-header reveal">
+          <div><div class="kicker"><span></span> Публичная карточка преподавателя</div><h1 id="profile-title">Мой профиль</h1><p>Основная информация, которую увидят ваши ученики.</p></div>
+          <div class="profile-header-actions"><span class="save-state" id="profileSaveState">Изменения не сохранены</span><button class="black-button" id="saveProfile">Сохранить профиль</button></div>
+        </header>
+
+        <div class="profile-layout">
+          <form class="profile-form panel reveal" id="profileForm">
+            <section class="avatar-editor">
+              <div class="profile-avatar-preview" id="profileAvatarPreview"><span>AK</span><img alt="Аватар преподавателя"></div>
+              <div><span class="field-caption">Фотография профиля</span><h2>Добавьте узнаваемый аватар</h2><p>JPG или PNG, до 5 МБ. Лучше использовать портрет на спокойном фоне.</p><div class="avatar-actions"><label for="avatarInput">Загрузить фото</label><button type="button" id="removeAvatar">Удалить</button></div></div>
+              <input type="file" id="avatarInput" accept="image/png,image/jpeg" hidden>
+            </section>
+
+            <div class="profile-fields">
+              <label><span>Имя <b>*</b></span><input id="profileFirstName" value="Алина" required placeholder="Ваше имя"></label>
+              <label><span>Фамилия <b>*</b></span><input id="profileLastName" value="Ким" required placeholder="Ваша фамилия"></label>
+              <label class="field-wide"><span>Предмет или направление <b>*</b></span><input id="profileSubject" value="3D-графика и визуальный дизайн" required placeholder="Например: английский язык, Python, Blender"></label>
+              <label class="field-wide"><span>Коротко о преподавании</span><textarea id="profileDescription" rows="6" maxlength="500" placeholder="Расскажите, чему вы обучаете и как проходят ваши занятия">Помогаю начинающим 3D-художникам разобраться в Blender, собрать первые сильные работы и сформировать собственный визуальный язык.</textarea><small><span id="descriptionCount">137</span> / 500</small></label>
+            </div>
+          </form>
+
+          <aside class="profile-preview-card reveal">
+            <div class="preview-label"><span>Предпросмотр</span><i>Для ученика</i></div>
+            <div class="preview-visual"><div class="preview-orbit"></div><div class="profile-avatar-preview mini" id="cardAvatarPreview"><span>AK</span><img alt=""></div></div>
+            <div class="preview-content"><span class="eyebrow">Преподаватель</span><h2 id="cardProfileName">Алина Ким</h2><p class="preview-subject" id="cardProfileSubject">3D-графика и визуальный дизайн</p><p class="preview-description" id="cardProfileDescription">Помогаю начинающим 3D-художникам разобраться в Blender, собрать первые сильные работы и сформировать собственный визуальный язык.</p><div class="preview-meta"><span><b>12</b> учеников</span><span><b>184</b> урока</span><span><b>4.9</b> рейтинг</span></div></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="students" aria-labelledby="students-title">
+        <div class="page-intro reveal"><span class="kicker"><span></span> Ваша практика</span><h1 id="students-title">Ученики<br>и <em>группы.</em></h1></div>
+        <div class="toolbar panel reveal"><div class="search">⌕ <input id="studentSearch" placeholder="Найти ученика или группу"></div><div class="filter-pills student-filters"><button class="active" data-student-filter="all">Все · 15</button><button data-student-filter="student">Ученики · 12</button><button data-student-filter="group">Группы · 3</button></div><button class="black-button">＋ Добавить</button></div>
+        <div class="students-grid">
+          <article class="student-card featured reveal" data-kind="student"><div class="student-top"><span class="avatar large peach">МС</span><span class="status">В процессе</span></div><h3>Маша Соколова</h3><p>3D Generalist · с нуля</p><div class="skill-line"><span style="--p:74%"></span></div><div class="student-stats"><span><b>12</b> занятий</span><span><b>74%</b> путь</span><span><b>2</b> работы</span></div><button data-open-person data-name="Маша Соколова" data-course="3D Generalist" data-avatar="МС">Открыть карточку ↗</button></article>
+          <article class="student-card reveal" data-kind="student"><div class="student-top"><span class="avatar large lilac">ИВ</span><span class="status pale">Сегодня, 17:00</span></div><h3>Илья Ветров</h3><p>UI Design · junior</p><div class="skill-line"><span style="--p:42%"></span></div><div class="student-stats"><span><b>7</b> занятий</span><span><b>42%</b> путь</span><span><b>1</b> проект</span></div><button data-open-person data-name="Илья Ветров" data-course="UI Design" data-avatar="ИВ">Открыть карточку ↗</button></article>
+          <article class="student-card dark-card reveal" data-kind="student"><div class="student-top"><span class="avatar large blue">СЛ</span><span class="status dark-status">Менторинг</span></div><h3>София Ли</h3><p>Portfolio · middle</p><blockquote>«Хочу собрать портфолио, которое чувствуется моим»</blockquote><div class="student-stats"><span><b>18</b> встреч</span><span><b>5</b> кейсов</span></div><button data-open-person data-name="София Ли" data-course="Portfolio" data-avatar="СЛ">Продолжить путь ↗</button></article>
+          <article class="student-card reveal" data-kind="group"><div class="student-top"><div class="group-avatars"><span class="avatar peach">М</span><span class="avatar lilac">Е</span><span class="avatar blue">К</span><span class="avatar">＋1</span></div><span class="status dark-status">Сегодня, 14:30</span></div><h3>Blender Junior</h3><p>3D-графика · 4 ученика</p><div class="skill-line"><span style="--p:68%"></span></div><div class="student-stats"><span><b>6</b> уроков</span><span><b>68%</b> модуля</span><span><b>4/4</b> активны</span></div><button data-open-person data-name="Blender Junior" data-course="3D-графика" data-avatar="BJ">Открыть группу ↗</button></article>
+          <article class="student-card reveal" data-kind="group"><div class="student-top"><div class="group-avatars"><span class="avatar lilac">А</span><span class="avatar blue">Л</span><span class="avatar peach">В</span><span class="avatar">＋3</span></div><span class="status dark-status">Чт, 11:00</span></div><h3>English B1</h3><p>Разговорный клуб · 6 учеников</p><div class="skill-line"><span style="--p:54%"></span></div><div class="student-stats"><span><b>12</b> уроков</span><span><b>54%</b> курса</span><span><b>5/6</b> активны</span></div><button data-open-person data-name="English B1" data-course="Разговорный клуб" data-avatar="B1">Открыть группу ↗</button></article>
+          <article class="student-card add-card reveal"><span>＋</span><h3>Новый человек</h3><p>Добавьте ученика и создайте для него персональную траекторию.</p></article>
+        </div>
+      </section>
+
+      <section class="view person-view" id="person-detail" aria-labelledby="person-detail-title">
+        <header class="person-header reveal">
+          <button class="back-button" data-view-jump="students">← Ученики и группы</button>
+          <div class="person-identity"><span class="avatar large peach" id="personAvatar">МС</span><div><span class="eyebrow">Карточка обучения</span><h1 id="person-detail-title">Маша Соколова</h1><p id="personCourseLabel">3D Generalist</p></div></div>
+          <button class="black-button person-plan">＋ Запланировать урок</button>
+        </header>
+        <div class="person-tabs reveal" role="tablist"><button data-person-tab="overview">Обзор</button><button class="active" data-person-tab="course">Курс</button><button data-person-tab="materials">Материалы</button><button data-person-tab="history">История занятий</button></div>
+
+        <div class="person-panel" data-person-panel="overview">
+          <article class="panel"><span class="eyebrow">О человеке</span><h2>Цель обучения</h2><p>Собрать уверенную базу, завершить первые проекты и научиться самостоятельно принимать визуальные решения.</p></article>
+          <article class="panel"><span class="eyebrow">Следующая встреча</span><h2>26 июня · 14:30</h2><p>Свет и материалы · 90 минут</p></article>
+        </div>
+
+        <div class="person-panel active course-workspace" data-person-panel="course">
+          <aside class="course-sidebar panel reveal"><span class="eyebrow">Текущий курс</span><h2 id="personCourseTitle">3D Generalist</h2><p>Индивидуальная траектория</p><div class="course-progress"><div><span>Прогресс</span><strong>68%</strong></div><i><b></b></i></div><nav><button class="active">01 · Основы</button><button>02 · Моделирование</button><button>03 · Материалы</button><button>04 · Свет и рендер</button><button>05 · Финальный проект</button></nav></aside>
+          <section class="course-lessons reveal">
+            <div class="course-section-head"><div><span class="eyebrow">Модуль 03</span><h2>Материалы и свет</h2></div><button class="soft-button add-course-lesson">＋ Добавить урок</button></div>
+            <article class="course-lesson completed"><span class="lesson-order">01</span><div><span class="lesson-state">Проведён · 12 июня</span><h3>Принципы материалов</h3><p>Конспект, запись и домашняя работа сохранены</p></div><button>Посмотреть итоги ↗</button></article>
+            <article class="course-lesson completed"><span class="lesson-order">02</span><div><span class="lesson-state">Проведён · 19 июня</span><h3>Текстуры и ноды</h3><p>Домашняя работа проверена</p></div><button>Посмотреть итоги ↗</button></article>
+            <article class="course-lesson upcoming"><span class="lesson-order">03</span><div><span class="lesson-state">Запланирован · 26 июня, 14:30</span><h3>Свет и материалы</h3><p id="courseMaterialStatus">План готов на 70% · добавлено 3 материала</p></div><div class="course-actions"><button class="course-material">＋ Материал</button><button class="open-specific-lesson">Открыть урок ↗</button></div></article>
+            <article class="course-lesson draft"><span class="lesson-order">04</span><div><span class="lesson-state">Черновик · дата не выбрана</span><h3>Атмосфера и финальный рендер</h3><p>Добавьте структуру и назначьте дату</p></div><button class="plan-draft">Запланировать ↗</button></article>
+            <button class="course-add-row add-course-lesson"><span>＋</span><div><strong>Следующий урок</strong><small>Добавить тему, материалы и дату</small></div></button>
+          </section>
+        </div>
+
+        <div class="person-panel" data-person-panel="materials"><article class="panel"><span class="eyebrow">Материалы ученика</span><h2>Личная библиотека</h2><p>Здесь будут файлы, ссылки, работы и материалы, добавленные к конкретным урокам.</p><button class="black-button person-add-material">＋ Добавить материал</button></article></div>
+        <div class="person-panel" data-person-panel="history"><article class="panel"><span class="eyebrow">История</span><h2>12 проведённых занятий</h2><p>Все прошлые уроки, записи, заметки и домашние работы собраны в хронологическом порядке.</p></article></div>
+        <input type="file" id="courseMaterialInput" hidden multiple>
+      </section>
+
+      <section class="view homework-view" id="homework" aria-labelledby="homework-title">
+        <header class="workspace-page-header reveal">
+          <div><div class="kicker"><span></span> Проверка и обратная связь</div><h1 id="homework-title">Домашние задания</h1><p>Работы учеников, сроки и обратная связь — в одной спокойной очереди.</p></div>
+          <button class="black-button" id="assignHomework">＋ Выдать задание</button>
+        </header>
+        <div class="work-summary reveal">
+          <article><span>Ждут проверки</span><strong>4</strong><small>2 желательно сегодня</small></article>
+          <article><span>Активные задания</span><strong>9</strong><small>у 7 учеников и 2 групп</small></article>
+          <article><span>Выполнено вовремя</span><strong>78%</strong><small>за последние 30 дней</small></article>
+        </div>
+        <div class="homework-layout">
+          <section class="homework-queue panel reveal">
+            <div class="queue-toolbar"><label class="workspace-search"><span>⌕</span><input id="homeworkSearch" placeholder="Найти ученика или задание" aria-label="Поиск домашних заданий"></label><div class="compact-tabs" role="tablist"><button class="active" data-homework-filter="review">На проверке</button><button data-homework-filter="active">Выданы</button><button data-homework-filter="draft">Черновики</button></div></div>
+            <div class="homework-list" id="homeworkList">
+              <button class="homework-item active" data-homework-status="review" data-student="Маша Соколова" data-course="3D Generalist" data-avatar="МС" data-title="Материалы предметов" data-description="Собрать три материала — стекло, металл и ткань — и показать различия в свете." data-file="materials_scene.blend" data-due="Сегодня, 18:00"><span class="avatar peach">МС</span><span class="homework-copy"><span class="item-state urgent">Новая работа</span><strong>Материалы предметов</strong><small>Маша Соколова · Blender</small></span><span class="homework-meta"><b>Сегодня</b><small>1 файл</small></span></button>
+              <button class="homework-item" data-homework-status="review" data-student="Илья Ветров" data-course="UI Design" data-avatar="ИВ" data-title="Первый экран лендинга" data-description="Собрать первый экран, проверить визуальную иерархию и адаптацию под мобильный формат." data-file="landing_v02.fig" data-due="Вчера, 20:14"><span class="avatar lilac">ИВ</span><span class="homework-copy"><span class="item-state">На проверке</span><strong>Первый экран лендинга</strong><small>Илья Ветров · Figma</small></span><span class="homework-meta"><b>Вчера</b><small>2 файла</small></span></button>
+              <button class="homework-item" data-homework-status="review" data-student="София Ли" data-course="Portfolio" data-avatar="СЛ" data-title="Описание кейса" data-description="Переписать вводную часть кейса: задача, ограничения, личный вклад и результат." data-file="case_story.pdf" data-due="22 июня, 11:30"><span class="avatar blue">СЛ</span><span class="homework-copy"><span class="item-state">Комментарий</span><strong>Описание кейса</strong><small>София Ли · Portfolio</small></span><span class="homework-meta"><b>22 июня</b><small>3 правки</small></span></button>
+              <button class="homework-item" data-homework-status="review" data-student="Артём Белов" data-course="Python" data-avatar="АБ" data-title="Игровая логика" data-description="Добавить подсчёт очков и условие завершения небольшой игры." data-file="game_logic.py" data-due="22 июня, 09:15"><span class="avatar">АБ</span><span class="homework-copy"><span class="item-state">На проверке</span><strong>Игровая логика</strong><small>Артём Белов · Python</small></span><span class="homework-meta"><b>22 июня</b><small>1 файл</small></span></button>
+              <button class="homework-item" data-homework-status="active" data-student="Blender Junior" data-course="3D-графика" data-avatar="BJ" data-title="Световая схема" data-description="Повторить схему из урока и подготовить один собственный вариант освещения." data-file="Задание выдано" data-due="До 27 июня"><span class="avatar peach">BJ</span><span class="homework-copy"><span class="item-state assigned">Выдано</span><strong>Световая схема</strong><small>Blender Junior · 4 ученика</small></span><span class="homework-meta"><b>27 июня</b><small>2 из 4</small></span></button>
+              <button class="homework-item" data-homework-status="draft" data-student="English B1" data-course="Разговорный клуб" data-avatar="B1" data-title="Travel situations" data-description="Черновик задания к следующей разговорной практике." data-file="Материалы не добавлены" data-due="Дата не выбрана"><span class="avatar lilac">B1</span><span class="homework-copy"><span class="item-state draft">Черновик</span><strong>Travel situations</strong><small>English B1 · группа</small></span><span class="homework-meta"><b>Без даты</b><small>черновик</small></span></button>
+            </div>
+          </section>
+          <aside class="homework-review panel reveal" id="homeworkReview">
+            <div class="review-top"><span class="item-state urgent" id="reviewState">Новая работа</span><button class="mini-button" aria-label="Дополнительные действия">•••</button></div>
+            <div class="review-person"><span class="avatar large peach" id="reviewAvatar">МС</span><div><h2 id="reviewStudent">Маша Соколова</h2><p id="reviewCourse">3D Generalist</p></div></div>
+            <span class="eyebrow">Задание</span><h3 id="reviewTitle">Материалы предметов</h3><p id="reviewDescription">Собрать три материала — стекло, металл и ткань — и показать различия в свете.</p>
+            <button class="submission-file"><span>BLEND</span><div><strong id="reviewFile">materials_scene.blend</strong><small id="reviewDue">Сегодня, 18:00</small></div><b>↗</b></button>
+            <label class="feedback-field"><span>Обратная связь</span><textarea id="homeworkFeedback" rows="5" placeholder="Что получилось и над чем поработать дальше"></textarea></label>
+            <div class="review-actions"><button class="soft-button" id="openHomeworkStudent">Открыть ученика</button><button class="black-button" id="saveHomeworkReview">Сохранить проверку</button></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view messages-view" id="messages" aria-labelledby="messages-title">
+        <header class="workspace-page-header reveal">
+          <div><div class="kicker"><span></span> Общение с учениками</div><h1 id="messages-title">Сообщения</h1><p>Диалоги связаны с учениками, группами и конкретными занятиями.</p></div>
+          <button class="black-button" id="newMessage">＋ Новое сообщение</button>
+        </header>
+        <div class="messages-shell panel reveal">
+          <aside class="conversation-pane">
+            <label class="workspace-search"><span>⌕</span><input id="conversationSearch" placeholder="Поиск диалогов" aria-label="Поиск диалогов"></label>
+            <div class="message-filter compact-tabs"><button class="active" data-message-filter="all">Все</button><button data-message-filter="unread">Непрочитанные</button></div>
+            <div class="conversation-list" id="conversationList">
+              <button class="conversation active" data-conversation="sofia" data-unread="2"><span class="avatar blue">СЛ</span><span><strong>София Ли</strong><small>Отправила новую версию кейса</small></span><time>12:40</time><b>2</b></button>
+              <button class="conversation" data-conversation="blender" data-unread="1"><span class="avatar peach">BJ</span><span><strong>Blender Junior</strong><small>Катя: а запись уже доступна?</small></span><time>11:18</time><b>1</b></button>
+              <button class="conversation" data-conversation="ilya" data-unread="0"><span class="avatar lilac">ИВ</span><span><strong>Илья Ветров</strong><small>Спасибо, поправлю сетку</small></span><time>вчера</time></button>
+              <button class="conversation" data-conversation="artem" data-unread="0"><span class="avatar">АБ</span><span><strong>Артём Белов</strong><small>Следующий урок в субботу</small></span><time>пн</time></button>
+            </div>
+          </aside>
+          <section class="chat-pane">
+            <header class="chat-header"><div class="chat-person"><span class="avatar blue" id="chatAvatar">СЛ</span><div><h2 id="chatName">София Ли</h2><p id="chatContext">Portfolio · личный диалог</p></div></div><button class="soft-button" id="openChatPerson">Открыть карточку</button></header>
+            <div class="chat-thread" id="chatThread" aria-live="polite"></div>
+            <form class="message-composer" id="messageComposer"><button type="button" class="composer-attach" aria-label="Прикрепить файл">＋</button><label><span class="sr-only">Сообщение</span><textarea id="messageInput" rows="1" placeholder="Написать сообщение"></textarea></label><button type="submit" class="composer-send">Отправить</button></form>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="library" aria-labelledby="library-title">
+        <div class="page-intro reveal"><span class="kicker"><span></span> Библиотека</span><h1 id="library-title">Знания, собранные<br>в красивую <em>систему.</em></h1></div>
+        <div class="library-layout">
+          <article class="library-feature reveal"><span class="eyebrow">Коллекция месяца</span><h2>Visual<br>storytelling</h2><p>18 материалов · 6 уроков</p><div class="shape shape-a"></div><div class="shape shape-b"></div><button>Открыть коллекцию ↗</button></article>
+          <div class="resource-column">
+            <div class="resource-head reveal"><div class="filter-pills"><button class="active">Все</button><button>Уроки</button><button>Файлы</button><button>Шаблоны</button></div><button class="black-button">＋ Материал</button></div>
+            <article class="resource reveal"><span class="resource-type rose-bg">PDF</span><div><h3>Композиция в кадре</h3><p>Теория · 24 страницы</p></div><span class="tag">3D</span><button>↗</button></article>
+            <article class="resource reveal"><span class="resource-type lilac-bg">LESSON</span><div><h3>Свет: от базы до атмосферы</h3><p>Урок · 80 минут</p></div><span class="tag">Blender</span><button>↗</button></article>
+            <article class="resource reveal"><span class="resource-type blue-bg">FIG</span><div><h3>UI critique canvas</h3><p>Шаблон для разбора</p></div><span class="tag">Design</span><button>↗</button></article>
+            <article class="resource reveal"><span class="resource-type peach-bg">REF</span><div><h3>Editorial references / 06</h3><p>Мудборд · 46 элементов</p></div><span class="tag">Inspiration</span><button>↗</button></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="view lesson-view" id="lesson" aria-labelledby="lesson-title">
+        <div class="lesson-top reveal"><div><span class="kicker"><span class="live-dot"></span> LIVE · 00:42:16</span><h1 id="lesson-title">Свет и материалы</h1></div><div class="lesson-people"><div class="student-stack"><span>М</span><span>Е</span><span>К</span><span>А</span></div><button class="black-button">Завершить урок</button></div></div>
+        <div class="lesson-stage reveal">
+          <aside class="lesson-tools"><button class="active">↖</button><button>✎</button><button>□</button><button>T</button><button>⌁</button><span></span><button>＋</button></aside>
+          <div class="canvas">
+            <div class="canvas-label">01 · ATMOSPHERE</div>
+            <h2>Light changes<br><em>everything.</em></h2>
+            <div class="reference-frame"><div class="fake-render"><div class="render-sphere"></div><div class="render-floor"></div></div><span>reference_04.jpg</span></div>
+            <div class="sticky-note">Тёплый key light<br>+ холодный rim</div>
+            <svg class="draw-line" viewBox="0 0 320 140" fill="none"><path d="M5 125C72 75 107 126 166 68C219 16 277 12 314 28" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M294 17L315 28L301 45" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+            <div class="cursor-label cursor-one">Маша</div><div class="cursor-label cursor-two">Вы</div>
+          </div>
+          <aside class="lesson-panel glass">
+            <div class="video-tile teacher"><span class="video-avatar">AK</span><small>Вы · преподаватель</small></div>
+            <div class="video-tile"><span class="video-avatar pale">МС</span><small>Маша</small></div>
+            <div class="notes-mini"><span class="eyebrow">Заметки</span><p>Обратить внимание на контраст материалов.</p><button>＋ Добавить</button></div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modal" aria-hidden="true">
+    <div class="modal panel">
+      <button class="modal-close" aria-label="Закрыть">×</button>
+      <span class="eyebrow">Новое занятие</span>
+      <h2>Создадим пространство<br>для хорошего урока.</h2>
+      <label>Название<input id="newLessonTitle" value="Основы композиции" required></label>
+      <label>Ученик или группа<input id="newLessonParticipant" value="Новый ученик" required></label>
+      <div class="form-row"><label>Дата<input id="newLessonDate" type="date" value="2026-06-24" min="2026-06-22" max="2026-06-28" required></label><label>Время<input id="newLessonTime" type="time" value="14:30" min="09:00" max="20:00" step="1800" required></label></div>
+      <div class="form-row"><label>Формат<select id="newLessonFormat"><option>Индивидуальное</option><option>Групповое</option><option>Менторинг</option></select></label><label>Длительность<select id="newLessonDuration"><option value="60">60 минут</option><option value="90" selected>90 минут</option><option value="120">120 минут</option></select></label></div>
+      <fieldset class="modal-color-field">
+        <legend>Цвет карточки урока</legend>
+        <div class="modal-color-head"><span>Выбранный цвет</span><strong id="newLessonColorName">Лавандовый</strong></div>
+        <div class="lesson-color-swatches modal-swatches" role="radiogroup" aria-label="Цвет нового занятия">
+          <button type="button" data-new-lesson-color="rose-event" data-color-name="Розовый" aria-label="Розовый цвет" role="radio" aria-checked="false"></button>
+          <button class="active" type="button" data-new-lesson-color="lavender-event" data-color-name="Лавандовый" aria-label="Лавандовый цвет" role="radio" aria-checked="true"></button>
+          <button type="button" data-new-lesson-color="blue-event" data-color-name="Голубой" aria-label="Голубой цвет" role="radio" aria-checked="false"></button>
+          <button type="button" data-new-lesson-color="peach-event" data-color-name="Персиковый" aria-label="Персиковый цвет" role="radio" aria-checked="false"></button>
+          <button type="button" data-new-lesson-color="lime-event" data-color-name="Лаймовый" aria-label="Лаймовый цвет" role="radio" aria-checked="false"></button>
+          <button type="button" data-new-lesson-color="dark-calendar-event" data-color-name="Графитовый" aria-label="Графитовый цвет" role="radio" aria-checked="false"></button>
+        </div>
+      </fieldset>
+      <button class="primary-button modal-submit">Создать занятие <span>↗</span></button>
+    </div>
+  </div>
+
+  <div class="mobile-more-menu glass" id="mobileMoreMenu" aria-hidden="true">
+    <button data-view="students">Ученики и группы</button>
+    <button data-view="library">Материалы</button>
+    <button data-view="profile">Мой профиль</button>
+  </div>
+  <nav class="mobile-nav glass" aria-label="Мобильная навигация">
+    <button class="active" data-view="today">⌁<small>Сегодня</small></button>
+    <button data-view="schedule">□<small>Расписание</small></button>
+    <button data-view="homework">✓<small>Задания</small></button>
+    <button data-view="messages">✉<small>Сообщения</small></button>
+    <button type="button" id="mobileMore" aria-expanded="false">•••<small>Ещё</small></button>
+  </nav>
+
+  <script src="vendor/gsap.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
