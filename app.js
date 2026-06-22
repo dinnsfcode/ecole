@@ -690,7 +690,9 @@ document.getElementById('saveProfile')?.addEventListener('click', () => {
     sidebarAvatar.textContent = profileInitials();
     sidebarAvatar.style.backgroundImage = '';
   }
-  localStorage.setItem('educatorProfile', JSON.stringify({ firstName: profileFields.firstName.value, lastName: profileFields.lastName.value, subject: profileFields.subject.value, description: profileFields.description.value }));
+  if (!window.ecoleSupabase) {
+    localStorage.setItem('educatorProfile', JSON.stringify({ firstName: profileFields.firstName.value, lastName: profileFields.lastName.value, subject: profileFields.subject.value, description: profileFields.description.value }));
+  }
   const state = document.getElementById('profileSaveState');
   state.textContent = 'Сохранено';
   state.classList.add('saved');
@@ -698,7 +700,7 @@ document.getElementById('saveProfile')?.addEventListener('click', () => {
 });
 
 try {
-  const savedProfile = JSON.parse(localStorage.getItem('educatorProfile'));
+  const savedProfile = window.ecoleSupabase ? null : JSON.parse(localStorage.getItem('educatorProfile'));
   if (savedProfile) Object.entries(profileFields).forEach(([key, field]) => { if (savedProfile[key] && field) field.value = savedProfile[key]; });
 } catch (_) {}
 updateProfilePreview(false);

@@ -15,7 +15,47 @@
   <div class="ambient ambient-a" aria-hidden="true"></div>
   <div class="ambient ambient-b" aria-hidden="true"></div>
 
-  <div class="shell">
+  <section class="auth-gate" id="authGate" aria-labelledby="authTitle">
+    <div class="auth-story" aria-hidden="true">
+      <a class="auth-brand" href="#" tabindex="-1"><span>é</span> école.</a>
+      <div class="auth-story-copy">
+        <span class="auth-kicker">Рабочее пространство преподавателя</span>
+        <h1>Всё обучение —<br><em>в вашем ритме.</em></h1>
+        <p>Расписание, ученики, материалы и обратная связь собраны в одном спокойном пространстве.</p>
+      </div>
+      <div class="auth-orbit auth-orbit-one"></div>
+      <div class="auth-orbit auth-orbit-two"></div>
+    </div>
+
+    <div class="auth-panel">
+      <div class="auth-card">
+        <div class="auth-mobile-brand"><span>é</span> école.</div>
+        <span class="auth-step">Добро пожаловать</span>
+        <h2 id="authTitle">Войдите в своё пространство</h2>
+        <p class="auth-lead" id="authLead">Продолжите работу с учениками и занятиями.</p>
+
+        <div class="auth-tabs" role="tablist" aria-label="Вход или регистрация">
+          <button class="active" type="button" role="tab" aria-selected="true" data-auth-mode="login">Войти</button>
+          <button type="button" role="tab" aria-selected="false" data-auth-mode="register">Регистрация</button>
+        </div>
+
+        <form class="auth-form" id="authForm" novalidate>
+          <div class="auth-name-fields" id="authNameFields" hidden>
+            <label><span>Имя</span><input id="authFirstName" name="firstName" autocomplete="given-name" placeholder="Ваше имя"></label>
+            <label><span>Фамилия</span><input id="authLastName" name="lastName" autocomplete="family-name" placeholder="Ваша фамилия"></label>
+          </div>
+          <label><span>Электронная почта</span><input id="authEmail" name="email" type="email" autocomplete="email" inputmode="email" placeholder="name@example.com" required></label>
+          <label><span>Пароль</span><span class="auth-password"><input id="authPassword" name="password" type="password" autocomplete="current-password" minlength="6" placeholder="Не менее 6 символов" required><button type="button" id="togglePassword" aria-label="Показать пароль">Показать</button></span></label>
+          <p class="auth-message" id="authMessage" role="status" aria-live="polite"></p>
+          <button class="auth-submit" id="authSubmit" type="submit"><span>Войти</span><b aria-hidden="true">→</b></button>
+        </form>
+
+        <p class="auth-privacy">Продолжая, вы соглашаетесь хранить данные аккаунта в защищённом облачном сервисе Supabase.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="shell" id="appShell" aria-hidden="true">
     <aside class="sidebar glass">
       <a class="brand" href="#" aria-label="École">
         <span class="brand-mark">é</span>
@@ -39,6 +79,7 @@
         <span><strong id="sidebarName">Алина Ким</strong><small id="sidebarSubject">3D · дизайн</small></span>
         <span class="more">•••</span>
       </button>
+      <button class="sign-out-button" id="signOutButton" type="button">Выйти из аккаунта</button>
     </aside>
 
     <main class="workspace">
@@ -481,6 +522,9 @@
     <button type="button" id="mobileMore" aria-expanded="false">•••<small>Ещё</small></button>
   </nav>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="auth.js"></script>
   <script src="vendor/gsap.min.js"></script>
   <script src="app.js"></script>
 </body>
