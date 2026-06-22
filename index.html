@@ -75,8 +75,8 @@
       <div class="sidebar-spacer"></div>
 
       <button class="profile" data-view-jump="profile">
-        <span class="avatar" id="sidebarAvatar">AK</span>
-        <span><strong id="sidebarName">Алина Ким</strong><small id="sidebarSubject">3D · дизайн</small></span>
+        <span class="avatar" id="sidebarAvatar">—</span>
+        <span><strong id="sidebarName">Ваш профиль</strong><small id="sidebarSubject">Добавьте направление</small></span>
         <span class="more">•••</span>
       </button>
       <button class="sign-out-button" id="signOutButton" type="button">Выйти из аккаунта</button>
@@ -327,23 +327,23 @@
         <div class="profile-layout">
           <form class="profile-form panel reveal" id="profileForm">
             <section class="avatar-editor">
-              <div class="profile-avatar-preview" id="profileAvatarPreview"><span>AK</span><img alt="Аватар преподавателя"></div>
+              <div class="profile-avatar-preview" id="profileAvatarPreview"><span>—</span><img alt="Аватар преподавателя"></div>
               <div><span class="field-caption">Фотография профиля</span><h2>Добавьте узнаваемый аватар</h2><p>JPG или PNG, до 5 МБ. Лучше использовать портрет на спокойном фоне.</p><div class="avatar-actions"><label for="avatarInput">Загрузить фото</label><button type="button" id="removeAvatar">Удалить</button></div></div>
               <input type="file" id="avatarInput" accept="image/png,image/jpeg" hidden>
             </section>
 
             <div class="profile-fields">
-              <label><span>Имя <b>*</b></span><input id="profileFirstName" value="Алина" required placeholder="Ваше имя"></label>
-              <label><span>Фамилия <b>*</b></span><input id="profileLastName" value="Ким" required placeholder="Ваша фамилия"></label>
-              <label class="field-wide"><span>Предмет или направление <b>*</b></span><input id="profileSubject" value="3D-графика и визуальный дизайн" required placeholder="Например: английский язык, Python, Blender"></label>
-              <label class="field-wide"><span>Коротко о преподавании</span><textarea id="profileDescription" rows="6" maxlength="500" placeholder="Расскажите, чему вы обучаете и как проходят ваши занятия">Помогаю начинающим 3D-художникам разобраться в Blender, собрать первые сильные работы и сформировать собственный визуальный язык.</textarea><small><span id="descriptionCount">137</span> / 500</small></label>
+              <label><span>Имя <b>*</b></span><input id="profileFirstName" value="" required placeholder="Ваше имя"></label>
+              <label><span>Фамилия <b>*</b></span><input id="profileLastName" value="" required placeholder="Ваша фамилия"></label>
+              <label class="field-wide"><span>Предмет или направление <b>*</b></span><input id="profileSubject" value="" required placeholder="Например: английский язык, Python, Blender"></label>
+              <label class="field-wide"><span>Коротко о преподавании</span><textarea id="profileDescription" rows="6" maxlength="500" placeholder="Расскажите, чему вы обучаете и как проходят ваши занятия"></textarea><small><span id="descriptionCount">0</span> / 500</small></label>
             </div>
           </form>
 
           <aside class="profile-preview-card reveal">
             <div class="preview-label"><span>Предпросмотр</span><i>Для ученика</i></div>
-            <div class="preview-visual"><div class="preview-orbit"></div><div class="profile-avatar-preview mini" id="cardAvatarPreview"><span>AK</span><img alt=""></div></div>
-            <div class="preview-content"><span class="eyebrow">Преподаватель</span><h2 id="cardProfileName">Алина Ким</h2><p class="preview-subject" id="cardProfileSubject">3D-графика и визуальный дизайн</p><p class="preview-description" id="cardProfileDescription">Помогаю начинающим 3D-художникам разобраться в Blender, собрать первые сильные работы и сформировать собственный визуальный язык.</p><div class="preview-meta"><span><b>12</b> учеников</span><span><b>184</b> урока</span><span><b>4.9</b> рейтинг</span></div></div>
+            <div class="preview-visual"><div class="preview-orbit"></div><div class="profile-avatar-preview mini" id="cardAvatarPreview"><span>—</span><img alt=""></div></div>
+            <div class="preview-content"><span class="eyebrow">Преподаватель</span><h2 id="cardProfileName">Имя преподавателя</h2><p class="preview-subject" id="cardProfileSubject">Ваше направление</p><p class="preview-description" id="cardProfileDescription">Здесь появится краткое описание вашего подхода к преподаванию.</p><div class="preview-meta"><span><b>0</b> учеников</span><span><b>0</b> уроков</span><span><b>—</b> рейтинг</span></div></div>
           </aside>
         </div>
       </section>

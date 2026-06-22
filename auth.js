@@ -34,10 +34,12 @@
 
   function updateUserInterface(session) {
     const signedIn = Boolean(session?.user);
+    window.ecoleCurrentSession = session || null;
     authGate.hidden = signedIn;
     appShell.setAttribute('aria-hidden', String(!signedIn));
     document.body.classList.toggle('is-authenticated', signedIn);
 
+    document.dispatchEvent(new CustomEvent('ecole:session', { detail: { session: session || null } }));
     if (!signedIn) return;
     const metadata = session.user.user_metadata || {};
     const fieldValues = {

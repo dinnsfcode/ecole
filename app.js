@@ -1,6 +1,7 @@
 const views = [...document.querySelectorAll('.view')];
 const navButtons = [...document.querySelectorAll('[data-view]')];
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const workspaceStartsEmpty = true;
 
 function animateView(view) {
   const items = view.querySelectorAll('.reveal');
@@ -168,6 +169,7 @@ let activeConversation = 'sofia';
 let messageFilter = 'all';
 
 function renderChat(conversationId, markRead = true) {
+  if (workspaceStartsEmpty) return;
   const data = conversationData[conversationId];
   if (!data) return;
   activeConversation = conversationId;
@@ -233,6 +235,10 @@ document.querySelectorAll('[data-message-filter]').forEach(button => button.addE
 document.getElementById('conversationSearch')?.addEventListener('input', applyConversationFilters);
 document.getElementById('messageComposer')?.addEventListener('submit', event => {
   event.preventDefault();
+  if (workspaceStartsEmpty) {
+    showToast('Сначала добавьте ученика, чтобы начать диалог');
+    return;
+  }
   const input = document.getElementById('messageInput');
   const text = input.value.trim();
   if (!text) return;
@@ -302,6 +308,12 @@ function updateTodayLessonActions() {
     button.dataset.actionState = isPast ? 'past' : isLiveWindow ? 'start' : 'prepare';
     button.setAttribute('aria-label', `${label}: ${formatLessonCountdown(minutes)}`);
   });
+
+  if (!document.querySelector('[data-today-lesson]')) {
+    const summary = document.getElementById('todayLessonSummary');
+    if (summary) summary.textContent = 'На сегодня занятий пока нет';
+    return;
+  }
 
   const nearestMinutes = remainingMinutes('light-materials');
   const countdown = formatLessonCountdown(nearestMinutes);
@@ -439,7 +451,9 @@ function createNewLesson() {
   badge.textContent = format === 'Групповое' ? 'GR' : format === 'Менторинг' ? 'ME' : '1:1';
   event.append(time, heading, meta, badge);
   event.addEventListener('click', () => openLessonDrawer(event));
-  document.querySelector('.event-layer').append(event);
+  const eventLayer = document.querySelector('.event-layer');
+  eventLayer?.querySelector('.workspace-empty')?.remove();
+  eventLayer?.append(event);
 
   closeModal();
   switchView('schedule');
@@ -704,6 +718,169 @@ try {
   if (savedProfile) Object.entries(profileFields).forEach(([key, field]) => { if (savedProfile[key] && field) field.value = savedProfile[key]; });
 } catch (_) {}
 updateProfilePreview(false);
+
+function emptyStateMarkup(title, text, action = '', actionLabel = '') {
+  return `<div class="workspace-empty">
+    <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 8.5h16l6 6V38a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3V11.5a3 3 0 0 1 3-3Z"/><path d="M30 8.5v8h6M18 25h12M18 31h8"/></svg>
+    <strong>${title}</strong><p>${text}</p>
+    ${action ? `<button class="soft-button" type="button" data-empty-action="${action}">${actionLabel}</button>` : ''}
+  </div>`;
+}
+
+function initialiseEmptyWorkspace() {
+  if (!workspaceStartsEmpty) return;
+
+  document.querySelectorAll('#today .stat-strip article strong').forEach(value => { value.textContent = '0'; });
+  document.querySelectorAll('#today .stat-strip article em').forEach(note => { note.textContent = 'Пока пусто'; note.classList.remove('urgent'); });
+  ['homeworkNavCount', 'messagesNavCount'].forEach(id => { const count = document.getElementById(id); if (count) count.textContent = '0'; });
+  document.querySelector('.nav-item[data-view="students"] .nav-count')?.replaceChildren(document.createTextNode('0'));
+
+  const agenda = document.querySelector('#today .agenda-timeline');
+  if (agenda) agenda.innerHTML = emptyStateMarkup('На сегодня занятий нет', 'Запланируйте первый урок — он появится здесь и в недельном календаре.', 'lesson', '＋ Запланировать занятие');
+
+  const nextLesson = document.querySelector('#today .next-compact');
+  if (nextLesson) nextLesson.innerHTML = `<span class="eyebrow">Ближайший урок</span>${emptyStateMarkup('Уроков пока нет', 'Добавьте занятие, чтобы видеть подготовку и время начала.', 'lesson', '＋ Новое занятие')}`;
+
+  const taskCard = document.querySelector('#today .tasks');
+  if (taskCard) {
+    taskCard.querySelectorAll('label,.text-action').forEach(item => item.remove());
+    taskCard.insertAdjacentHTML('beforeend', emptyStateMarkup('Задач пока нет', 'Добавляйте небольшие дела на день, чтобы ничего не потерять.', 'task', '＋ Добавить задачу'));
+  }
+
+  const activity = document.querySelector('#today .activity');
+  if (activity) {
+    activity.querySelectorAll('.activity-item').forEach(item => item.remove());
+    activity.insertAdjacentHTML('beforeend', emptyStateMarkup('Активности пока нет', 'Здесь появятся новые работы и сообщения учеников.'));
+  }
+
+  const weekloadTitle = document.querySelector('#today .weekload h3');
+  if (weekloadTitle) weekloadTitle.textContent = '0 уроков · 0 часов';
+  document.querySelectorAll('#today .week-bars i').forEach(bar => bar.style.setProperty('--h', '3%'));
+  document.querySelectorAll('#today .week-bars small').forEach(count => { count.textContent = '0'; });
+  const focus = document.querySelector('#today .focus-mini');
+  if (focus) focus.innerHTML = '<div class="card-head"><span class="eyebrow">Фокус недели</span><span>0%</span></div><p>Добавьте учеников, чтобы отслеживать их движение по плану.</p><div class="focus-line"><span style="width:0"></span></div>';
+
+  const eventLayer = document.querySelector('.event-layer');
+  if (eventLayer) eventLayer.innerHTML = emptyStateMarkup('Неделя свободна', 'Создайте первое занятие — дату и время можно будет изменить позже.', 'lesson', '＋ Добавить занятие');
+  closeLessonDrawer();
+
+  const studentsGrid = document.querySelector('.students-grid');
+  if (studentsGrid) studentsGrid.innerHTML = emptyStateMarkup('Добавьте первого ученика', 'Создайте личную карточку или соберите учебную группу.', 'student', '＋ Добавить ученика');
+  const studentFilterLabels = { all: 'Все · 0', student: 'Ученики · 0', group: 'Группы · 0' };
+  document.querySelectorAll('[data-student-filter]').forEach(button => { button.textContent = studentFilterLabels[button.dataset.studentFilter]; });
+
+  const homeworkList = document.getElementById('homeworkList');
+  if (homeworkList) homeworkList.innerHTML = emptyStateMarkup('Нет домашних заданий', 'Выданные работы и ответы учеников появятся в этой очереди.', 'homework', '＋ Создать задание');
+  const homeworkReview = document.getElementById('homeworkReview');
+  if (homeworkReview) homeworkReview.innerHTML = emptyStateMarkup('Нечего проверять', 'Когда ученик отправит работу, здесь откроются файл и поле обратной связи.');
+  document.querySelectorAll('.work-summary article strong').forEach(value => { value.textContent = '0'; });
+
+  const conversationList = document.getElementById('conversationList');
+  if (conversationList) conversationList.innerHTML = emptyStateMarkup('Диалогов пока нет', 'После добавления ученика вы сможете написать ему сообщение.', 'student', '＋ Добавить ученика');
+  const chatPane = document.querySelector('.chat-pane');
+  if (chatPane) chatPane.innerHTML = emptyStateMarkup('Выберите будущий диалог', 'Здесь будет храниться переписка с учениками и группами.');
+
+  document.querySelectorAll('.resource-column .resource').forEach(resource => resource.remove());
+  const libraryFeature = document.querySelector('.library-feature');
+  if (libraryFeature) libraryFeature.hidden = true;
+  const resourceColumn = document.querySelector('.resource-column');
+  if (resourceColumn) resourceColumn.insertAdjacentHTML('beforeend', emptyStateMarkup('Библиотека пока пуста', 'Добавляйте файлы, ссылки и шаблоны, чтобы использовать их на занятиях.', 'material', '＋ Добавить материал'));
+
+  const previewStats = document.querySelectorAll('.preview-meta b');
+  if (previewStats[0]) previewStats[0].textContent = '0';
+  if (previewStats[1]) previewStats[1].textContent = '0';
+  if (previewStats[2]) previewStats[2].textContent = '—';
+}
+
+function moscowNow() {
+  const values = Object.fromEntries(new Intl.DateTimeFormat('ru-RU', {
+    timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+  }).formatToParts(new Date()).filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+  return {
+    year: Number(values.year), month: Number(values.month), day: Number(values.day),
+    hour: Number(values.hour), minute: Number(values.minute),
+    date: new Date(Date.UTC(Number(values.year), Number(values.month) - 1, Number(values.day)))
+  };
+}
+
+function isoDate(date) {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+}
+
+function capitalise(value) { return value.charAt(0).toUpperCase() + value.slice(1); }
+
+function updateMoscowInterface(session = window.ecoleCurrentSession) {
+  const now = moscowNow();
+  const dateText = capitalise(new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()));
+  const dayName = capitalise(new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', weekday: 'long' }).format(new Date()));
+  const shortDate = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'long' }).format(new Date());
+  const greeting = now.hour < 12 ? 'Доброе утро' : now.hour < 18 ? 'Добрый день' : 'Добрый вечер';
+  const firstName = session?.user?.user_metadata?.first_name?.trim();
+
+  const todayKicker = document.querySelector('#today .today-header .kicker');
+  if (todayKicker) todayKicker.innerHTML = `<span></span> ${dateText}`;
+  const title = document.getElementById('today-title');
+  if (title) title.textContent = firstName ? `${greeting}, ${firstName}` : greeting;
+  const agendaDay = document.querySelector('#today .agenda-panel .section-heading h3');
+  if (agendaDay) agendaDay.textContent = dayName;
+  document.querySelectorAll('#today .date-switch span').forEach(label => { label.textContent = shortDate; });
+
+  let clock = document.getElementById('moscowClock');
+  if (!clock) {
+    clock = document.createElement('span');
+    clock.id = 'moscowClock';
+    clock.className = 'moscow-clock';
+    document.querySelector('.topbar-actions')?.prepend(clock);
+  }
+  clock.textContent = `${String(now.hour).padStart(2, '0')}:${String(now.minute).padStart(2, '0')} МСК`;
+
+  const dayIndex = (now.date.getUTCDay() + 6) % 7;
+  const weekStart = new Date(now.date); weekStart.setUTCDate(now.date.getUTCDate() - dayIndex);
+  const weekEnd = new Date(weekStart); weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
+  const days = document.querySelectorAll('.calendar-days button');
+  days.forEach((button, index) => {
+    const date = new Date(weekStart); date.setUTCDate(weekStart.getUTCDate() + index);
+    button.querySelector('small').textContent = new Intl.DateTimeFormat('ru-RU', { weekday: 'short', timeZone: 'UTC' }).format(date).replace('.', '');
+    button.querySelector('b').textContent = String(date.getUTCDate());
+    button.classList.toggle('current', isoDate(date) === isoDate(now.date));
+  });
+  const weekLabel = document.querySelector('.calendar-nav strong');
+  if (weekLabel) {
+    const start = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: weekStart.getUTCMonth() === weekEnd.getUTCMonth() ? undefined : 'long', timeZone: 'UTC' }).format(weekStart);
+    const end = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(weekEnd);
+    weekLabel.textContent = `${start}–${end}`;
+  }
+
+  const dateInput = document.getElementById('newLessonDate');
+  if (dateInput) { dateInput.value = isoDate(now.date); dateInput.min = isoDate(weekStart); dateInput.max = isoDate(weekEnd); }
+  const timeInput = document.getElementById('newLessonTime');
+  if (timeInput) timeInput.value = `${String(Math.min(20, now.hour + 1)).padStart(2, '0')}:00`;
+
+  if (firstName) {
+    const lastName = session?.user?.user_metadata?.last_name?.trim() || '';
+    document.getElementById('sidebarName').textContent = `${firstName} ${lastName}`.trim();
+    document.getElementById('sidebarAvatar').textContent = `${firstName[0]}${lastName[0] || ''}`.toUpperCase();
+  }
+}
+
+document.addEventListener('click', event => {
+  const action = event.target.closest('[data-empty-action]')?.dataset.emptyAction;
+  if (!action) return;
+  if (action === 'lesson') { openModal(); return; }
+  const labels = {
+    student: 'Форма добавления ученика появится на следующем этапе',
+    task: 'Форма новой задачи появится на следующем этапе',
+    homework: 'Сначала добавьте ученика, затем можно будет выдать задание',
+    material: 'Загрузка материалов появится на следующем этапе'
+  };
+  showToast(labels[action] || 'Раздел готовится');
+});
+
+document.addEventListener('ecole:session', event => updateMoscowInterface(event.detail.session));
+initialiseEmptyWorkspace();
+updateMoscowInterface();
+window.setInterval(() => updateMoscowInterface(), 60000);
 
 if (window.gsap && !reducedMotion) {
   gsap.from('.sidebar', { x: -24, opacity: 0, duration: .8, ease: 'power3.out' });
