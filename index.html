@@ -44,6 +44,21 @@
             <label><span>Имя</span><input id="authFirstName" name="firstName" autocomplete="given-name" placeholder="Ваше имя"></label>
             <label><span>Фамилия</span><input id="authLastName" name="lastName" autocomplete="family-name" placeholder="Ваша фамилия"></label>
           </div>
+          <fieldset class="auth-role-fields" id="authRoleFields" hidden>
+            <legend>Кем вы будете пользоваться платформой?</legend>
+            <div class="auth-role-options">
+              <label class="auth-role-card">
+                <input type="radio" name="role" value="teacher" checked>
+                <span class="auth-role-icon" aria-hidden="true">T</span>
+                <span><strong>Учитель</strong><small>Планировать занятия и вести учеников</small></span>
+              </label>
+              <label class="auth-role-card">
+                <input type="radio" name="role" value="student">
+                <span class="auth-role-icon" aria-hidden="true">S</span>
+                <span><strong>Ученик</strong><small>Получать материалы и выполнять задания</small></span>
+              </label>
+            </div>
+          </fieldset>
           <label><span>Электронная почта</span><input id="authEmail" name="email" type="email" autocomplete="email" inputmode="email" placeholder="name@example.com" required></label>
           <label><span>Пароль</span><span class="auth-password"><input id="authPassword" name="password" type="password" autocomplete="current-password" minlength="6" placeholder="Не менее 6 символов" required><button type="button" id="togglePassword" aria-label="Показать пароль">Показать</button></span></label>
           <p class="auth-message" id="authMessage" role="status" aria-live="polite"></p>
@@ -63,6 +78,11 @@
       </a>
 
       <nav class="main-nav" aria-label="Основная навигация">
+        <button class="nav-item active" data-view="admin-dashboard" data-admin-nav><span class="nav-icon">◎</span><span>Админ-панель</span></button>
+        <button class="nav-item active" data-view="student-home" data-student-nav><span class="nav-icon">⌁</span><span>Главная</span></button>
+        <button class="nav-item" data-view="student-schedule" data-student-nav><span class="nav-icon">□</span><span>Расписание</span></button>
+        <button class="nav-item" data-view="student-assignments" data-student-nav><span class="nav-icon">✓</span><span>Мои задания</span></button>
+        <button class="nav-item" data-view="student-materials" data-student-nav><span class="nav-icon">◇</span><span>Материалы</span></button>
         <button class="nav-item active" data-view="today"><span class="nav-icon">⌁</span><span>Сегодня</span></button>
         <button class="nav-item" data-view="schedule"><span class="nav-icon">□</span><span>Расписание</span></button>
         <button class="nav-item" data-view="students"><span class="nav-icon">◌</span><span>Ученики и группы</span><span class="nav-count">15</span></button>
@@ -89,8 +109,98 @@
           <button class="icon-button" aria-label="Поиск">⌕</button>
           <button class="icon-button notification" aria-label="Уведомления">◔<i></i></button>
           <button class="primary-button" id="newLesson"><span>＋</span> Новое занятие</button>
+          <button class="primary-button student-top-action" type="button" data-student-action="join"><span>＋</span> Ввести код курса</button>
         </div>
       </header>
+
+      <section class="view student-home-view" id="student-home" aria-labelledby="student-home-title">
+        <header class="student-welcome reveal">
+          <div>
+            <div class="kicker"><span></span> Личный кабинет ученика</div>
+            <h1 id="student-home-title">Ваше обучение<br><em>начинается здесь.</em></h1>
+            <p id="studentGreeting">Подключитесь к преподавателю — после этого здесь появятся занятия, материалы и обратная связь.</p>
+          </div>
+          <button class="black-button" type="button" data-student-action="join">Ввести код приглашения <span>→</span></button>
+        </header>
+
+        <div class="student-dashboard-grid">
+          <article class="student-next-card panel reveal">
+            <div class="card-head"><span class="eyebrow">Ближайшее занятие</span><span class="student-status-pill">Пока пусто</span></div>
+            <div class="student-card-empty-icon" aria-hidden="true">01</div>
+            <h2>Занятия появятся после подключения</h2>
+            <p>Получите код у преподавателя и добавьте первый курс.</p>
+            <button class="text-action" type="button" data-student-action="join">Подключиться к преподавателю →</button>
+          </article>
+
+          <article class="student-progress-card panel dark reveal">
+            <div class="card-head"><span class="eyebrow">Мой прогресс</span><span>0%</span></div>
+            <div class="student-progress-ring"><span>0<small>%</small></span></div>
+            <h2>Впереди первый шаг</h2>
+            <p>Завершённые уроки и динамика обучения будут собраны здесь.</p>
+          </article>
+
+          <article class="student-task-card panel reveal">
+            <div class="card-head"><div><span class="eyebrow">Домашние задания</span><h2>На этой неделе</h2></div><span class="student-status-pill">0 заданий</span></div>
+            <div class="student-inline-empty"><span aria-hidden="true">✓</span><div><strong>Новых заданий нет</strong><p>Преподаватель ещё ничего не назначил.</p></div></div>
+            <button class="text-action" type="button" data-view-jump="student-assignments">Открыть задания →</button>
+          </article>
+
+          <article class="student-course-card panel reveal">
+            <div class="card-head"><div><span class="eyebrow">Мои курсы</span><h2>Пространство для роста</h2></div></div>
+            <div class="student-course-placeholder">
+              <span class="student-card-empty-icon" aria-hidden="true">＋</span>
+              <div><strong>Добавьте первый курс</strong><p>Введите код, который отправит преподаватель.</p></div>
+              <button class="soft-button" type="button" data-student-action="join">Ввести код</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view admin-dashboard-view" id="admin-dashboard" aria-labelledby="admin-title">
+        <header class="admin-header reveal">
+          <div><div class="kicker"><span></span> Управление платформой</div><h1 id="admin-title">Админ-панель.</h1><p>Регистрации, роли и последние действия пользователей в одном месте.</p></div>
+          <button class="soft-button" type="button" id="adminRefresh">Обновить данные</button>
+        </header>
+
+        <div class="admin-stat-grid reveal" aria-label="Сводка пользователей">
+          <article><span>Всего пользователей</span><strong id="adminTotalUsers">—</strong><small>за всё время</small></article>
+          <article><span>Учителей</span><strong id="adminTeachers">—</strong><small>зарегистрировано</small></article>
+          <article><span>Учеников</span><strong id="adminStudents">—</strong><small>зарегистрировано</small></article>
+          <article class="accent"><span>Активны сегодня</span><strong id="adminActiveToday">—</strong><small>по московскому времени</small></article>
+        </div>
+
+        <div class="admin-grid">
+          <section class="admin-users panel reveal" aria-labelledby="admin-users-title">
+            <div class="admin-section-head"><div><span class="eyebrow">База пользователей</span><h2 id="admin-users-title">Кто зарегистрировался</h2></div><span class="admin-load-state" id="adminLoadState" role="status" aria-live="polite">Загрузка…</span></div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead><tr><th>Пользователь</th><th>Роль</th><th>Регистрация</th><th>Последняя активность</th><th>Раздел</th></tr></thead>
+                <tbody id="adminUsersBody"><tr><td colspan="5">Получаем данные из Supabase…</td></tr></tbody>
+              </table>
+            </div>
+          </section>
+
+          <aside class="admin-activity panel dark reveal" aria-labelledby="admin-activity-title">
+            <div class="admin-section-head"><div><span class="eyebrow">Журнал</span><h2 id="admin-activity-title">Последние действия</h2></div></div>
+            <div class="admin-activity-list" id="adminActivityList"><p>Активность появится после подключения таблиц.</p></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view student-simple-view" id="student-schedule" aria-labelledby="student-schedule-title">
+        <header class="student-section-header reveal"><span class="kicker"><span></span> Моё обучение</span><h1 id="student-schedule-title">Расписание.</h1><p>Все встречи с преподавателями будут собраны в одном календаре.</p></header>
+        <article class="student-simple-empty panel reveal"><span class="student-card-empty-icon" aria-hidden="true">□</span><div><span class="eyebrow">Расписание пока пусто</span><h2>Подключитесь к первому курсу</h2><p>После подключения здесь появятся даты, московское время и ссылки на занятия.</p></div><button class="black-button" type="button" data-student-action="join">Ввести код приглашения</button></article>
+      </section>
+
+      <section class="view student-simple-view" id="student-assignments" aria-labelledby="student-assignments-title">
+        <header class="student-section-header reveal"><span class="kicker"><span></span> Практика</span><h1 id="student-assignments-title">Мои задания.</h1><p>Условия, сроки, прикреплённые файлы и обратная связь преподавателя.</p></header>
+        <article class="student-simple-empty panel reveal"><span class="student-card-empty-icon" aria-hidden="true">✓</span><div><span class="eyebrow">Всё выполнено</span><h2>Новых заданий пока нет</h2><p>Назначенные преподавателем работы появятся здесь автоматически.</p></div></article>
+      </section>
+
+      <section class="view student-simple-view" id="student-materials" aria-labelledby="student-materials-title">
+        <header class="student-section-header reveal"><span class="kicker"><span></span> Библиотека</span><h1 id="student-materials-title">Материалы.</h1><p>Конспекты, записи уроков, ссылки и файлы по вашим курсам.</p></header>
+        <article class="student-simple-empty panel reveal"><span class="student-card-empty-icon" aria-hidden="true">◇</span><div><span class="eyebrow">Библиотека пока пустая</span><h2>Материалы появятся вместе с курсом</h2><p>Вам не придётся искать файлы в переписке — всё будет храниться здесь.</p></div><button class="black-button" type="button" data-student-action="join">Добавить курс</button></article>
+      </section>
 
       <section class="view active" id="today" aria-labelledby="today-title">
         <header class="today-header reveal">
@@ -510,16 +620,21 @@
   </div>
 
   <div class="mobile-more-menu glass" id="mobileMoreMenu" aria-hidden="true">
-    <button data-view="students">Ученики и группы</button>
+    <button data-view="students" data-teacher-mobile>Ученики и группы</button>
     <button data-view="library">Материалы</button>
     <button data-view="profile">Мой профиль</button>
   </div>
   <nav class="mobile-nav glass" aria-label="Мобильная навигация">
-    <button class="active" data-view="today">⌁<small>Сегодня</small></button>
-    <button data-view="schedule">□<small>Расписание</small></button>
-    <button data-view="homework">✓<small>Задания</small></button>
-    <button data-view="messages">✉<small>Сообщения</small></button>
-    <button type="button" id="mobileMore" aria-expanded="false">•••<small>Ещё</small></button>
+    <button class="active" data-view="admin-dashboard" data-admin-mobile>◎<small>Админ</small></button>
+    <button class="active" data-view="student-home" data-student-mobile>⌁<small>Главная</small></button>
+    <button data-view="student-schedule" data-student-mobile>□<small>Расписание</small></button>
+    <button data-view="student-assignments" data-student-mobile>✓<small>Задания</small></button>
+    <button data-view="student-materials" data-student-mobile>◇<small>Материалы</small></button>
+    <button class="active" data-view="today" data-teacher-mobile>⌁<small>Сегодня</small></button>
+    <button data-view="schedule" data-teacher-mobile>□<small>Расписание</small></button>
+    <button data-view="homework" data-teacher-mobile>✓<small>Задания</small></button>
+    <button data-view="messages" data-teacher-mobile>✉<small>Сообщения</small></button>
+    <button type="button" id="mobileMore" aria-expanded="false" data-teacher-mobile>•••<small>Ещё</small></button>
   </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

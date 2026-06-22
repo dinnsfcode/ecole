@@ -7,6 +7,7 @@
   const submit = document.getElementById('authSubmit');
   const submitLabel = submit.querySelector('span');
   const nameFields = document.getElementById('authNameFields');
+  const roleFields = document.getElementById('authRoleFields');
   const emailInput = document.getElementById('authEmail');
   const passwordInput = document.getElementById('authPassword');
   let mode = 'login';
@@ -32,14 +33,30 @@
     return 'Не удалось выполнить запрос. Проверьте интернет и попробуйте ещё раз.';
   }
 
-  function updateUserInterface(session) {
+  async function resolveAccessRole(session) {
+    if (!session?.user) return null;
+    const fallback = session.user.user_metadata?.role === 'student' ? 'student' : 'teacher';
+    try {
+      const { data, error } = await client.from('profiles').select('role').eq('id', session.user.id).maybeSingle();
+      if (error || !data?.role) return fallback;
+      return ['admin', 'student', 'teacher'].includes(data.role) ? data.role : fallback;
+    } catch (_error) {
+      return fallback;
+    }
+  }
+
+  async function updateUserInterface(session) {
     const signedIn = Boolean(session?.user);
+    const role = signedIn ? await resolveAccessRole(session) : null;
     window.ecoleCurrentSession = session || null;
+    window.ecoleUserRole = signedIn ? role : null;
+    if (signedIn) document.body.dataset.userRole = role;
+    else delete document.body.dataset.userRole;
     authGate.hidden = signedIn;
     appShell.setAttribute('aria-hidden', String(!signedIn));
     document.body.classList.toggle('is-authenticated', signedIn);
 
-    document.dispatchEvent(new CustomEvent('ecole:session', { detail: { session: session || null } }));
+    document.dispatchEvent(new CustomEvent('ecole:session', { detail: { session: session || null, role } }));
     if (!signedIn) return;
     const metadata = session.user.user_metadata || {};
     const fieldValues = {
@@ -66,6 +83,7 @@
       button.setAttribute('aria-selected', String(active));
     });
     nameFields.hidden = !registering;
+    roleFields.hidden = !registering;
     passwordInput.autocomplete = registering ? 'new-password' : 'current-password';
     document.getElementById('authTitle').textContent = registering ? 'Создайте своё пространство' : 'Войдите в своё пространство';
     document.getElementById('authLead').textContent = registering ? 'Начните собирать обучение в понятную систему.' : 'Продолжите работу с учениками и занятиями.';
@@ -103,6 +121,7 @@
       if (mode === 'register') {
         const firstName = document.getElementById('authFirstName').value.trim();
         const lastName = document.getElementById('authLastName').value.trim();
+        const role = form.elements.role.value === 'student' ? 'student' : 'teacher';
         if (!firstName) {
           document.getElementById('authFirstName').focus();
           setMessage('Укажите имя — оно появится в вашем профиле.', 'error');
@@ -113,7 +132,7 @@
           password: passwordInput.value,
           options: {
             emailRedirectTo: `${window.location.origin}${window.location.pathname}`,
-            data: { first_name: firstName, last_name: lastName }
+            data: { first_name: firstName, last_name: lastName, role }
           }
         });
         if (error) throw error;

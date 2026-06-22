@@ -20,6 +20,143 @@ function switchView(id) {
   navButtons.forEach(button => button.classList.toggle('active', button.dataset.view === id));
   window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' });
   animateView(target);
+  trackActivity('page_view', id);
+}
+
+function applyRoleInterface(session, resolvedRole = window.ecoleUserRole) {
+  if (!session?.user) return;
+  const role = resolvedRole || (session.user.user_metadata?.role === 'student' ? 'student' : 'teacher');
+  document.body.dataset.userRole = role;
+  const firstName = session.user.user_metadata?.first_name?.trim();
+  if (role === 'student') {
+    const title = document.getElementById('student-home-title');
+    if (title && firstName) {
+      const emphasis = document.createElement('em');
+      emphasis.textContent = 'Учимся в своём ритме.';
+      title.replaceChildren(document.createTextNode(`Добро пожаловать, ${firstName}.`), document.createElement('br'), emphasis);
+    }
+    switchView('student-home');
+  } else if (role === 'admin') {
+    switchView('admin-dashboard');
+    loadAdminDashboard();
+  } else {
+    switchView('today');
+  }
+}
+
+function trackActivity(eventType, page = null, metadata = {}) {
+  const client = window.ecoleSupabase;
+  if (!client || !window.ecoleCurrentSession?.user) return;
+  client.rpc('track_activity', {
+    p_event_type: eventType,
+    p_page: page,
+    p_metadata: metadata
+  }).then(() => {}).catch(() => {});
+}
+
+function formatAdminDate(value, withTime = true) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('ru-RU', {
+    timeZone: 'Europe/Moscow', day: '2-digit', month: 'short', year: 'numeric',
+    ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {})
+  }).format(date);
+}
+
+function moscowDateKey(value = new Date()) {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(new Date(value));
+}
+
+async function loadAdminDashboard() {
+  const client = window.ecoleSupabase;
+  if (!client || window.ecoleUserRole !== 'admin') return;
+  const state = document.getElementById('adminLoadState');
+  const body = document.getElementById('adminUsersBody');
+  const activityList = document.getElementById('adminActivityList');
+  if (state) state.textContent = 'Обновляем…';
+
+  const [profilesResult, activityResult] = await Promise.all([
+    client.from('profiles')
+      .select('id,email,first_name,last_name,role,created_at,last_seen_at,last_page', { count: 'exact' })
+      .order('created_at', { ascending: false }).limit(500),
+    client.from('activity_events')
+      .select('id,user_id,event_type,page,created_at').order('created_at', { ascending: false }).limit(60)
+  ]);
+
+  if (profilesResult.error) {
+    if (state) state.textContent = 'Нужно выполнить файл supabase-admin.sql';
+    if (body) body.innerHTML = '<tr><td colspan="5">Админ-таблицы ещё не подключены в Supabase.</td></tr>';
+    return;
+  }
+
+  const profiles = profilesResult.data || [];
+  const today = moscowDateKey();
+  const activeToday = profiles.filter(profile => profile.last_seen_at && moscowDateKey(profile.last_seen_at) === today).length;
+  document.getElementById('adminTotalUsers').textContent = String(profilesResult.count ?? profiles.length);
+  document.getElementById('adminTeachers').textContent = String(profiles.filter(profile => profile.role === 'teacher').length);
+  document.getElementById('adminStudents').textContent = String(profiles.filter(profile => profile.role === 'student').length);
+  document.getElementById('adminActiveToday').textContent = String(activeToday);
+  if (state) state.textContent = `Обновлено ${formatAdminDate(new Date())}`;
+
+  if (body) {
+    body.replaceChildren();
+    if (!profiles.length) {
+      const row = document.createElement('tr');
+      const cell = document.createElement('td');
+      cell.colSpan = 5; cell.textContent = 'Пользователей пока нет.'; row.append(cell); body.append(row);
+    } else {
+      const roleLabels = { admin: 'Администратор', teacher: 'Учитель', student: 'Ученик' };
+      profiles.forEach(profile => {
+        const row = document.createElement('tr');
+        const name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+        const cells = [
+          name ? `${name}\n${profile.email}` : profile.email,
+          roleLabels[profile.role] || profile.role,
+          formatAdminDate(profile.created_at),
+          formatAdminDate(profile.last_seen_at),
+          profile.last_page || '—'
+        ];
+        cells.forEach((value, index) => {
+          const cell = document.createElement('td');
+          if (index === 0 && name) {
+            const strong = document.createElement('strong'); strong.textContent = name;
+            const small = document.createElement('small'); small.textContent = profile.email;
+            cell.append(strong, small);
+          } else {
+            cell.textContent = value;
+          }
+          if (index === 1) cell.dataset.role = profile.role;
+          row.append(cell);
+        });
+        body.append(row);
+      });
+    }
+  }
+
+  if (activityList) {
+    activityList.replaceChildren();
+    const events = activityResult.error ? [] : (activityResult.data || []);
+    const profileMap = new Map(profiles.map(profile => [profile.id, profile]));
+    if (!events.length) {
+      const empty = document.createElement('p'); empty.textContent = 'Действий пока нет.'; activityList.append(empty);
+    } else {
+      const eventLabels = { sign_in: 'вошёл(ла) в аккаунт', page_view: 'открыл(а) раздел' };
+      events.slice(0, 12).forEach(event => {
+        const profile = profileMap.get(event.user_id);
+        const item = document.createElement('article');
+        const dot = document.createElement('span'); dot.className = 'admin-activity-dot';
+        const text = document.createElement('div');
+        const strong = document.createElement('strong'); strong.textContent = profile?.email || 'Пользователь';
+        const description = document.createElement('p');
+        description.textContent = `${eventLabels[event.event_type] || event.event_type}${event.page ? ` · ${event.page}` : ''}`;
+        const time = document.createElement('small'); time.textContent = formatAdminDate(event.created_at);
+        text.append(strong, description, time); item.append(dot, text); activityList.append(item);
+      });
+    }
+  }
 }
 
 navButtons.forEach(button => button.addEventListener('click', () => switchView(button.dataset.view)));
@@ -877,7 +1014,22 @@ document.addEventListener('click', event => {
   showToast(labels[action] || 'Раздел готовится');
 });
 
-document.addEventListener('ecole:session', event => updateMoscowInterface(event.detail.session));
+let trackedSessionUser = null;
+document.addEventListener('ecole:session', event => {
+  updateMoscowInterface(event.detail.session);
+  applyRoleInterface(event.detail.session, event.detail.role);
+  const userId = event.detail.session?.user?.id;
+  if (userId && trackedSessionUser !== userId) {
+    trackedSessionUser = userId;
+    trackActivity('sign_in', event.detail.role === 'admin' ? 'admin-dashboard' : event.detail.role === 'student' ? 'student-home' : 'today');
+  }
+  if (!userId) trackedSessionUser = null;
+});
+document.getElementById('adminRefresh')?.addEventListener('click', loadAdminDashboard);
+document.addEventListener('click', event => {
+  if (!event.target.closest('[data-student-action="join"]')) return;
+  showToast('Коды приглашения подключим вместе с таблицами курсов в Supabase');
+});
 initialiseEmptyWorkspace();
 updateMoscowInterface();
 window.setInterval(() => updateMoscowInterface(), 60000);
