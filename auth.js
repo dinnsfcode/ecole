@@ -182,7 +182,9 @@
     }
   });
 
-  client.auth.onAuthStateChange((_event, session) => updateUserInterface(session));
+  client.auth.onAuthStateChange((_event, session) => {
+    window.setTimeout(() => updateUserInterface(session), 0);
+  });
   client.auth.getSession().then(({ data, error }) => {
     if (error) setMessage(translateAuthError(error), 'error');
     updateUserInterface(data?.session || null);
