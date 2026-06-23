@@ -296,6 +296,18 @@ body:not(.is-authenticated) .mobile-nav,body:not(.is-authenticated) .mobile-more
 /* Student invite modal */
 .invite-modal p{font-size:13px;line-height:1.55;color:#625d60;margin:0 0 14px}.invite-modal p strong{color:#111}.invite-modal .primary-button{width:100%;display:flex;justify-content:space-between;margin-top:12px}.invite-modal .primary-button:disabled{opacity:.58;cursor:not-allowed}
 
+/* Product task overlay */
+.task-modal-backdrop{background:rgba(22,18,20,.38)}
+.task-modal{width:min(520px,calc(100vw - 34px));background:linear-gradient(145deg,rgba(255,252,248,.96),rgba(246,232,237,.96));border:1px solid rgba(255,255,255,.78);box-shadow:0 28px 90px rgba(40,30,35,.28);overflow:hidden}
+.task-modal:before{content:"";position:absolute;width:180px;height:180px;right:-80px;top:-70px;border-radius:50%;background:radial-gradient(circle,var(--lav),transparent 70%);opacity:.65;pointer-events:none}
+.task-modal h2{position:relative;margin-bottom:12px}
+.task-modal>p{position:relative;margin:0 0 18px;color:#71696d;font-size:13px;line-height:1.5}
+.task-modal label{position:relative}
+.task-modal input{height:54px;font-size:15px;background:rgba(255,255,255,.82)}
+.task-modal .primary-button{position:relative;width:100%;min-height:52px;margin-top:12px;display:flex;align-items:center;justify-content:space-between;font-size:13px}
+.task-modal .primary-button:disabled{opacity:.58;cursor:wait;transform:none}
+.task-modal .auth-message{position:relative;margin:7px 0 0}
+
 /* Teacher home cleanup after feedback */
 #today .focus-mini{display:none!important}
 body[data-user-role="teacher"] .topbar-actions{gap:10px}

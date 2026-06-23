@@ -716,6 +716,11 @@ navButtons.forEach(button => button.addEventListener('click', () => {
 }));
 
 let savedTeacherTasksCache = [];
+const taskModal = document.getElementById('taskModal');
+const taskTitleInput = document.getElementById('taskTitleInput');
+const taskModalMessage = document.getElementById('taskModalMessage');
+const taskModalDate = document.getElementById('taskModalDate');
+const saveTaskButton = document.getElementById('saveTaskButton');
 
 function teacherTaskDateKey(task) {
   return moscowDateKey(task.due_at || task.created_at || new Date());
@@ -791,11 +796,32 @@ async function toggleTeacherTask(taskId, done) {
   }
 }
 
-async function addTodayTask() {
+function openTaskModal() {
+  if (!taskModal || !taskTitleInput) return;
+  if (taskModalDate) taskModalDate.textContent = `Задача попадёт на ${formatRuShortDate(todayViewDate())}.`;
+  if (taskModalMessage) {
+    taskModalMessage.textContent = '';
+    taskModalMessage.classList.remove('error', 'success');
+  }
+  taskTitleInput.value = '';
+  taskModal.classList.add('open');
+  taskModal.setAttribute('aria-hidden', 'false');
+  window.setTimeout(() => taskTitleInput.focus(), 80);
+  if (window.gsap && !reducedMotion) {
+    gsap.fromTo('.task-modal', { y: 22, scale: .97, opacity: 0 }, { y: 0, scale: 1, opacity: 1, duration: .36, ease: 'power3.out' });
+  }
+}
+
+function closeTaskModal() {
+  if (!taskModal) return;
+  taskModal.classList.remove('open');
+  taskModal.setAttribute('aria-hidden', 'true');
+}
+
+async function saveTodayTask(text) {
   const taskCard = document.querySelector('#today .tasks');
-  if (!taskCard) return;
-  const text = window.prompt('Что добавить в задачи на сегодня?');
-  if (!text?.trim()) return;
+  if (!taskCard) return false;
+  if (!text?.trim()) return false;
   const client = window.ecoleSupabase;
   const userId = window.ecoleCurrentSession?.user?.id;
   const selectedDate = todayViewDateKey();
@@ -810,7 +836,7 @@ async function addTodayTask() {
     });
     renderTodayTasks(savedTeacherTasksCache);
     showToast('Задача добавлена локально');
-    return;
+    return true;
   }
   const { data, error } = await client
     .from('teacher_tasks')
@@ -819,14 +845,54 @@ async function addTodayTask() {
     .single();
   if (error) {
     showToast(`Не удалось сохранить задачу: ${error.message}`);
-    return;
+    if (taskModalMessage) {
+      taskModalMessage.textContent = `Не удалось сохранить: ${error.message}`;
+      taskModalMessage.classList.add('error');
+    }
+    return false;
   }
   savedTeacherTasksCache.push(data);
   renderTodayTasks(savedTeacherTasksCache);
   showToast('Задача сохранена');
+  return true;
+}
+
+function addTodayTask() {
+  openTaskModal();
+}
+
+async function submitTaskModal() {
+  if (!taskTitleInput) return;
+  const text = taskTitleInput.value.trim();
+  if (!text) {
+    taskTitleInput.setCustomValidity('Напишите задачу');
+    taskTitleInput.reportValidity();
+    taskTitleInput.setCustomValidity('');
+    return;
+  }
+  const originalText = saveTaskButton?.innerHTML;
+  if (saveTaskButton) {
+    saveTaskButton.disabled = true;
+    saveTaskButton.innerHTML = 'Сохраняем… <span>→</span>';
+  }
+  const saved = await saveTodayTask(text);
+  if (saveTaskButton) {
+    saveTaskButton.disabled = false;
+    saveTaskButton.innerHTML = originalText;
+  }
+  if (saved) closeTaskModal();
 }
 
 document.querySelector('#today .tasks .round-add')?.addEventListener('click', addTodayTask);
+document.getElementById('closeTaskModal')?.addEventListener('click', closeTaskModal);
+taskModal?.addEventListener('click', event => { if (event.target === taskModal) closeTaskModal(); });
+saveTaskButton?.addEventListener('click', submitTaskModal);
+taskTitleInput?.addEventListener('keydown', event => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    submitTaskModal();
+  }
+});
 
 const todayLessonOffsets = {
   'light-materials': 138,
@@ -962,6 +1028,7 @@ document.querySelectorAll('.schedule-add').forEach(button => button.addEventList
 document.querySelector('.modal-close').addEventListener('click', closeModal);
 modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
 document.addEventListener('keydown', event => { if (event.key === 'Escape') closeModal(); });
+document.addEventListener('keydown', event => { if (event.key === 'Escape') closeTaskModal(); });
 document.querySelector('.modal-submit').addEventListener('click', createNewLesson);
 ['newLessonDate', 'newLessonTime'].forEach(id => {
   const input = document.getElementById(id);
@@ -1282,21 +1349,48 @@ function updateTodayFromLessons(rows = []) {
   }
 }
 
-document.querySelector('[data-today-day-prev]')?.addEventListener('click', () => {
+function animateTodayDayChange(direction, update) {
+  const items = [...document.querySelectorAll('#today .agenda-panel, #today .next-compact, #today .weekload, #today .tasks, #today .stat-strip article')];
+  if (!items.length || reducedMotion || !window.gsap) {
+    update();
+    return;
+  }
+  gsap.killTweensOf(items);
+  gsap.to(items, {
+    x: direction * -18,
+    opacity: 0,
+    duration: .16,
+    stagger: .015,
+    ease: 'power2.in',
+    onComplete: () => {
+      update();
+      gsap.fromTo(items, { x: direction * 18, opacity: 0 }, {
+        x: 0,
+        opacity: 1,
+        duration: .28,
+        stagger: .025,
+        ease: 'power3.out',
+        clearProps: 'transform,opacity'
+      });
+    }
+  });
+}
+
+document.querySelector('[data-today-day-prev]')?.addEventListener('click', () => animateTodayDayChange(-1, () => {
   todayViewOffsetDays -= 1;
   updateTodayFromLessons(savedLessonRowsCache);
   renderTodayTasks(savedTeacherTasksCache);
-});
-document.querySelector('[data-today-day-next]')?.addEventListener('click', () => {
+}));
+document.querySelector('[data-today-day-next]')?.addEventListener('click', () => animateTodayDayChange(1, () => {
   todayViewOffsetDays += 1;
   updateTodayFromLessons(savedLessonRowsCache);
   renderTodayTasks(savedTeacherTasksCache);
-});
-document.querySelector('[data-today-day-reset]')?.addEventListener('click', () => {
+}));
+document.querySelector('[data-today-day-reset]')?.addEventListener('click', () => animateTodayDayChange(todayViewOffsetDays > 0 ? -1 : 1, () => {
   todayViewOffsetDays = 0;
   updateTodayFromLessons(savedLessonRowsCache);
   renderTodayTasks(savedTeacherTasksCache);
-});
+}));
 
 function renderLessonEvent(lessonId, data, placement, colorClass = 'lavender-event') {
   const eventLayer = document.querySelector('.event-layer');
