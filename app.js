@@ -435,6 +435,7 @@ function formatLessonCountdown(minutes) {
 
 function updateTodayLessonActions() {
   document.querySelectorAll('[data-today-lesson]').forEach(button => {
+    if (!(button.dataset.todayLesson in todayLessonStarts)) return;
     const minutes = remainingMinutes(button.dataset.todayLesson);
     const isLiveWindow = minutes <= 30 && minutes > -120;
     const isPast = minutes <= -120;
@@ -474,6 +475,20 @@ document.querySelectorAll('[data-today-lesson]').forEach(button => button.addEve
     if (calendarEvent) openLessonDrawer(calendarEvent);
   });
 }));
+
+function openTodayLesson(lessonId) {
+  const minutes = remainingMinutes(lessonId);
+  const calendarEvent = document.querySelector(`.calendar-event[data-lesson="${lessonId}"]`);
+  if (Number.isFinite(minutes) && minutes <= 30 && minutes > -120) {
+    switchView('lesson');
+    showToast('Пространство урока открыто');
+    return;
+  }
+  switchView('schedule');
+  requestAnimationFrame(() => {
+    if (calendarEvent) openLessonDrawer(calendarEvent);
+  });
+}
 
 updateTodayLessonActions();
 window.setInterval(updateTodayLessonActions, 30000);
@@ -565,6 +580,102 @@ function formatLessonDateLabel(startsAt) {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
+function lessonStartDateKey(row) {
+  return moscowDateKey(row.starts_at);
+}
+
+function lessonStartMinutes(row) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('ru-RU', {
+    timeZone: 'Europe/Moscow',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23'
+  }).formatToParts(new Date(row.starts_at)).filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+  return Number(parts.hour) * 60 + Number(parts.minute);
+}
+
+function lessonCountdownText(minutes) {
+  if (minutes > 0 && minutes < 60) return `через ${minutes} мин`;
+  if (minutes >= 60) {
+    const hours = Math.floor(minutes / 60);
+    const rest = minutes % 60;
+    return rest ? `через ${hours} ч ${rest} мин` : `через ${hours} ч`;
+  }
+  if (minutes > -120) return 'урок идёт';
+  return 'завершён';
+}
+
+function updateTodayFromLessons(rows = []) {
+  const today = moscowDateKey();
+  const todayRows = rows
+    .filter(row => lessonStartDateKey(row) === today)
+    .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+  const now = Date.now();
+  const upcoming = todayRows
+    .filter(row => new Date(row.starts_at).getTime() + Number(row.duration_minutes || 60) * 60000 > now)
+    .sort((a, b) => Math.abs(new Date(a.starts_at) - now) - Math.abs(new Date(b.starts_at) - now));
+  const nearest = upcoming[0] || null;
+
+  const lessonCount = document.querySelector('#today .stat-strip article:first-child strong');
+  if (lessonCount) lessonCount.textContent = String(todayRows.length);
+  const lessonNote = document.querySelector('#today .stat-strip article:first-child em');
+  if (lessonNote) lessonNote.textContent = todayRows.length ? 'Сегодня' : 'Пока пусто';
+
+  const agenda = document.querySelector('#today .agenda-timeline');
+  if (agenda) {
+    agenda.replaceChildren();
+    if (!todayRows.length) {
+      agenda.insertAdjacentHTML('beforeend', emptyStateMarkup('На сегодня занятий нет', 'Запланируйте первый урок — он появится здесь и в недельном календаре.', 'lesson', '+ Запланировать занятие'));
+    } else {
+      todayRows.forEach((row, index) => {
+        const prepared = lessonRowToUi(row).data;
+        const lessonId = `db-${row.id}`;
+        const item = document.createElement('div');
+        item.className = `agenda-event${index === 0 ? ' primary-event' : ' compact'}`;
+        item.dataset.startInMinutes = String(Math.max(0, Math.round((new Date(row.starts_at) - now) / 60000)));
+        const time = document.createElement('time');
+        const [start, end] = prepared.time.split('–');
+        time.textContent = start;
+        const endSmall = document.createElement('small');
+        endSmall.textContent = end || '';
+        time.append(endSmall);
+        const content = document.createElement('div');
+        const type = document.createElement('span');
+        type.className = 'event-type';
+        type.textContent = prepared.course;
+        const title = document.createElement('h4');
+        title.textContent = prepared.title;
+        const participant = document.createElement('p');
+        participant.textContent = prepared.student;
+        content.append(type, title, participant);
+        const button = document.createElement('button');
+        button.dataset.todayLesson = lessonId;
+        button.textContent = 'Подготовиться ↗';
+        button.addEventListener('click', () => openTodayLesson(lessonId));
+        item.append(time, content, button);
+        agenda.append(item);
+      });
+    }
+  }
+
+  const summary = document.getElementById('todayLessonSummary');
+  const nextLesson = document.querySelector('#today .next-compact');
+  if (!nearest) {
+    if (summary) summary.textContent = 'На сегодня занятий пока нет';
+    if (nextLesson) nextLesson.innerHTML = `<span class="eyebrow">Ближайший урок</span>${emptyStateMarkup('Уроков пока нет', 'Добавьте занятие, чтобы видеть подготовку и время начала.', 'lesson', '+ Новое занятие')}`;
+    return;
+  }
+
+  const prepared = lessonRowToUi(nearest).data;
+  const minutes = Math.round((new Date(nearest.starts_at) - now) / 60000);
+  const countdown = lessonCountdownText(minutes);
+  if (summary) summary.textContent = `Первый урок в ${prepared.time.split('–')[0]} · ${countdown}`;
+  if (nextLesson) {
+    nextLesson.innerHTML = `<div class="card-head"><span class="eyebrow">Ближайший урок</span><span class="live-in" id="nextLessonCountdown">${countdown}</span></div><div class="session-time">${prepared.time.split('–')[0]} <span>— ${prepared.time.split('–')[1] || ''}</span></div><h3>${prepared.title}</h3><p>${prepared.student}</p><button data-today-lesson="db-${nearest.id}" id="nextLessonAction">Подготовиться <span>↗</span></button>`;
+    nextLesson.querySelector('[data-today-lesson]')?.addEventListener('click', () => openTodayLesson(`db-${nearest.id}`));
+  }
+}
+
 function renderLessonEvent(lessonId, data, placement, colorClass = 'lavender-event') {
   const eventLayer = document.querySelector('.event-layer');
   if (!eventLayer) return null;
@@ -639,6 +750,7 @@ async function loadSavedLessons() {
     lessonData[lessonId] = prepared.data;
     renderLessonEvent(lessonId, prepared.data, prepared.placement, prepared.colorClass);
   });
+  updateTodayFromLessons(data || []);
 }
 
 function eventColorClass(eventButton) {
@@ -732,6 +844,8 @@ async function createNewLesson() {
     return;
   }
 
+  loadSavedLessons();
+
   lessonData[lessonId] = {
     student: participant,
     avatar: initials,
@@ -749,6 +863,7 @@ async function createNewLesson() {
   const event = document.createElement('button');
   event.className = `calendar-event ${colorClass}`;
   event.dataset.lesson = lessonId;
+  event.dataset.persistedLesson = 'true';
   event.style.gridColumn = String(gridDay);
   event.style.gridRow = `${gridRow} / span ${gridSpan}`;
   const time = document.createElement('small');
@@ -1194,6 +1309,19 @@ function updateMoscowInterface(session = window.ecoleCurrentSession) {
     button.querySelector('b').textContent = String(date.getUTCDate());
     button.classList.toggle('current', isoDate(date) === isoDate(now.date));
   });
+  document.querySelectorAll('.day-columns i').forEach((column, index) => {
+    column.classList.toggle('is-today', index === dayIndex);
+    column.classList.toggle('current-column', index === dayIndex);
+  });
+  const nowLine = document.querySelector('.now-line');
+  if (nowLine) {
+    const minutesFromStart = (now.hour * 60 + now.minute) - (9 * 60);
+    const top = Math.max(0, Math.min(864, minutesFromStart * 1.2));
+    nowLine.style.setProperty('--now-line-top', `${top}px`);
+    nowLine.classList.toggle('is-outside-hours', minutesFromStart < 0 || minutesFromStart > 720);
+    const label = nowLine.querySelector('span');
+    if (label) label.textContent = `${String(now.hour).padStart(2, '0')}:${String(now.minute).padStart(2, '0')}`;
+  }
   const weekLabel = document.querySelector('.calendar-nav strong');
   if (weekLabel) {
     const start = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: weekStart.getUTCMonth() === weekEnd.getUTCMonth() ? undefined : 'long', timeZone: 'UTC' }).format(weekStart);
