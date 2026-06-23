@@ -291,3 +291,6 @@ body:not(.is-authenticated) .mobile-nav,body:not(.is-authenticated) .mobile-more
 
 /* Dynamic Moscow now line */
 .now-line{top:var(--now-line-top,438px)}.now-line.is-outside-hours{display:none}.day-columns i.current-column{background:transparent}.day-columns i.is-today{background:rgba(220,207,248,.12)}
+
+/* Student invite modal */
+.invite-modal p{font-size:13px;line-height:1.55;color:#625d60;margin:0 0 14px}.invite-modal p strong{color:#111}.invite-modal .primary-button{width:100%;display:flex;justify-content:space-between;margin-top:12px}.invite-modal .primary-button:disabled{opacity:.58;cursor:not-allowed}

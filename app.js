@@ -1422,7 +1422,10 @@ function setStudentInviteMessage(text = '', type = '') {
 }
 
 function openStudentInviteModal() {
-  if (!studentInviteModal) return;
+  if (!studentInviteModal) {
+    openStudentInviteFallback();
+    return;
+  }
   studentInviteModal.classList.add('open');
   studentInviteModal.setAttribute('aria-hidden', 'false');
   setStudentInviteMessage();
@@ -1432,6 +1435,38 @@ function openStudentInviteModal() {
 function closeStudentInviteModal() {
   studentInviteModal?.classList.remove('open');
   studentInviteModal?.setAttribute('aria-hidden', 'true');
+}
+
+function translateInviteError(error) {
+  const text = String(error?.message || '').toLowerCase();
+  if (text.includes('not found')) return 'Код не найден. Проверьте, что скопировали его полностью.';
+  if (text.includes('self')) return 'Нельзя подключиться к своему же коду преподавателя.';
+  if (text.includes('not authenticated')) return 'Сначала войдите в аккаунт ученика.';
+  if (text.includes('Введите код')) return error.message;
+  return `Не удалось отправить заявку: ${error?.message || 'попробуйте ещё раз'}`;
+}
+
+async function submitTeacherInviteCode(code) {
+  const client = window.ecoleSupabase;
+  const cleanCode = String(code || '').trim();
+  if (!client || !window.ecoleCurrentSession?.user) throw new Error('Not authenticated');
+  if (!cleanCode) throw new Error('Введите код преподавателя.');
+  const { error } = await client.rpc('request_teacher_connection', { p_code: cleanCode });
+  if (error) throw error;
+}
+
+async function openStudentInviteFallback() {
+  const code = window.prompt('Введите код преподавателя, например ECOLE-A1B2C3D4');
+  if (code === null) return;
+  try {
+    await submitTeacherInviteCode(code);
+    showToast('Заявка преподавателю отправлена');
+    window.alert('Заявка отправлена. Преподаватель увидит её у себя и сможет принять.');
+  } catch (error) {
+    const message = translateInviteError(error);
+    showToast(message);
+    window.alert(message);
+  }
 }
 
 document.addEventListener('click', event => {

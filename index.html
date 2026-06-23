@@ -631,6 +631,18 @@
     </div>
   </div>
 
+  <div class="modal-backdrop invite-modal-backdrop" id="studentInviteModal" aria-hidden="true">
+    <div class="modal panel invite-modal" role="dialog" aria-modal="true" aria-labelledby="studentInviteTitle">
+      <button class="modal-close" type="button" id="closeStudentInviteModal" aria-label="Закрыть">×</button>
+      <span class="eyebrow">Подключение</span>
+      <h2 id="studentInviteTitle">Введите код преподавателя</h2>
+      <p>Код выглядит примерно так: <strong>ECOLE-A1B2C3D4</strong>. После отправки преподаватель увидит заявку.</p>
+      <label>Код приглашения<input id="studentInviteCodeInput" autocomplete="off" placeholder="ECOLE-..." maxlength="32"></label>
+      <p class="auth-message" id="studentInviteMessage" role="status" aria-live="polite"></p>
+      <button class="primary-button" type="button" id="submitStudentInviteCode">Отправить заявку <span>→</span></button>
+    </div>
+  </div>
+
   <div class="mobile-more-menu glass" id="mobileMoreMenu" aria-hidden="true">
     <button data-view="students" data-teacher-mobile>Ученики и группы</button>
     <button data-view="library">Материалы</button>
