@@ -106,8 +106,6 @@
       <header class="topbar">
         <div class="mobile-brand">école.</div>
         <div class="topbar-actions">
-          <button class="icon-button" aria-label="Поиск">⌕</button>
-          <button class="icon-button notification" aria-label="Уведомления">◔<i></i></button>
           <button class="primary-button" id="newLesson"><span>＋</span> Новое занятие</button>
           <button class="primary-button student-top-action" type="button" data-student-action="join"><span>＋</span> Ввести код курса</button>
         </div>
@@ -227,7 +225,7 @@
             <article class="agenda-panel panel reveal">
               <div class="section-heading">
                 <div><span class="eyebrow">Расписание дня</span><h3>Пятница</h3></div>
-                <div class="agenda-actions"><button class="soft-button">День</button><div class="date-switch"><button>‹</button><span>19 июня</span><button>›</button></div></div>
+                <div class="agenda-actions"><button class="soft-button" type="button" data-today-day-reset>День</button><div class="date-switch"><button type="button" data-today-day-prev>‹</button><span>19 июня</span><button type="button" data-today-day-next>›</button></div></div>
               </div>
               <div class="agenda-timeline">
                 <div class="agenda-hour"><time>13:00</time><span></span></div>
@@ -279,7 +277,7 @@
           <article class="next-session glass-card reveal">
             <div class="card-head">
               <span class="eyebrow">Следующее занятие</span>
-              <button class="mini-button">•••</button>
+              <button class="mini-button" type="button" data-lesson-more aria-label="Действия с уроком">•••</button>
             </div>
             <div class="session-time">14:30 <span>— 15:50</span></div>
             <h2>Свет и материалы<br>в Blender</h2>
@@ -337,7 +335,7 @@
           </div>
           <div class="schedule-controls">
             <button class="soft-button today-button">Сегодня</button>
-            <div class="calendar-nav"><button aria-label="Предыдущая неделя">‹</button><strong>22–28 июня 2026</strong><button aria-label="Следующая неделя">›</button></div>
+            <div class="calendar-nav"><button type="button" data-schedule-week-prev aria-label="Предыдущая неделя">‹</button><strong data-schedule-week-label>22–28 июня 2026</strong><button type="button" data-schedule-week-next aria-label="Следующая неделя">›</button></div>
             <div class="view-switch"><button class="active">Неделя</button><button>Месяц</button></div>
             <button class="black-button schedule-add">＋ Занятие</button>
           </div>
@@ -401,6 +399,8 @@
               <div class="lesson-summary"><span class="eyebrow">Тема</span><h3 id="drawerTitle">Python: функции</h3><p id="drawerDescription">Разобрать аргументы функций, области видимости и закрепить тему на небольшой практике.</p></div>
               <div class="lesson-readiness"><div class="readiness-head"><span>Готовность урока</span><strong id="readinessValue">75%</strong></div><div class="readiness-line"><span id="readinessLine" style="width:75%"></span></div><ul><li class="ready">План занятия</li><li class="ready">Материалы ученика</li><li>Домашнее задание</li></ul></div>
               <button class="drawer-action course-link" id="openDrawerCourse">Открыть ученика и курс <span>↗</span></button>
+              <button class="drawer-action secondary" type="button" data-edit-lesson>Изменить занятие <span>↗</span></button>
+              <button class="drawer-action danger" type="button" data-delete-lesson>Удалить занятие <span>×</span></button>
               <button class="drawer-action secondary prepare-board">◇ Подготовить доску <span>↗</span></button>
               <button class="drawer-action primary join-call">Начать звонок заранее <span>↗</span></button>
             </div>
@@ -619,10 +619,10 @@
       <button class="modal-close" aria-label="Закрыть">×</button>
       <span class="eyebrow">Новое занятие</span>
       <h2>Создадим пространство<br>для хорошего урока.</h2>
-      <label>Название<input id="newLessonTitle" value="Основы композиции" required></label>
-      <label>Ученик или группа<input id="newLessonParticipant" value="Новый ученик" required></label>
-      <div class="form-row"><label>Дата<input id="newLessonDate" type="date" value="2026-06-24" min="2026-06-22" max="2026-06-28" required></label><label>Время<input id="newLessonTime" type="time" value="14:30" min="09:00" max="20:00" step="1800" required></label></div>
-      <div class="form-row"><label>Формат<select id="newLessonFormat"><option>Индивидуальное</option><option>Групповое</option><option>Менторинг</option></select></label><label>Длительность<select id="newLessonDuration"><option value="60">60 минут</option><option value="90" selected>90 минут</option><option value="120">120 минут</option></select></label></div>
+      <label>Название<input id="newLessonTitle" placeholder="Например: Основы композиции" required></label>
+      <label>Ученик или группа<select id="newLessonParticipant" class="product-select" required><option value="">Выберите подключённого ученика</option></select></label>
+      <div class="form-row"><label>Дата<input id="newLessonDate" type="date" value="2026-06-24" required></label><label>Время<input id="newLessonTime" type="time" value="14:30" step="300" required></label></div>
+      <div class="form-row"><label>Формат<select id="newLessonFormat" class="product-select"><option>Индивидуальное</option><option>Групповое</option><option>Менторинг</option></select></label><label>Длительность<input id="newLessonDuration" type="number" min="5" max="480" step="5" value="90" required></label></div>
       <fieldset class="modal-color-field">
         <legend>Цвет карточки урока</legend>
         <div class="modal-color-head"><span>Выбранный цвет</span><strong id="newLessonColorName">Лавандовый</strong></div>

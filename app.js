@@ -199,14 +199,40 @@ function connectionStudentName(request) {
   return name || request.student_email || 'Новый ученик';
 }
 
+function populateLessonParticipants() {
+  const select = document.getElementById('newLessonParticipant');
+  if (!select) return;
+  const currentValue = select.value;
+  const activeRequests = teacherConnectionRows.filter(request => request.status === 'active');
+  select.replaceChildren();
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = activeRequests.length ? 'Выберите ученика или группу' : 'Сначала примите ученика в разделе “Ученики”';
+  placeholder.disabled = true;
+  placeholder.selected = true;
+  select.append(placeholder);
+  activeRequests.forEach(request => {
+    const option = document.createElement('option');
+    option.value = connectionStudentName(request);
+    option.textContent = connectionStudentName(request);
+    option.dataset.connectionId = request.connection_id || '';
+    option.dataset.studentEmail = request.student_email || '';
+    select.append(option);
+  });
+  if (currentValue && [...select.options].some(option => option.value === currentValue)) select.value = currentValue;
+  select.disabled = !activeRequests.length;
+}
+
 function renderConnectedStudents(requests = []) {
   teacherConnectionRows = requests;
+  populateLessonParticipants();
   const grid = document.querySelector('.students-grid');
   if (!grid) return;
   const activeRequests = requests.filter(request => request.status === 'active');
   if (!activeRequests.length) {
     grid.innerHTML = emptyStateMarkup('Добавьте первого ученика', 'Когда вы примете заявку, ученик появится здесь.', 'student', '＋ Добавить ученика');
     document.querySelector('.nav-item[data-view="students"] .nav-count')?.replaceChildren(document.createTextNode(String(requests.filter(request => request.status === 'pending').length)));
+    updateTodayStudentStat();
     document.querySelectorAll('[data-student-filter]').forEach(button => {
       const labels = { all: `Все · ${activeRequests.length}`, student: `Ученики · ${activeRequests.length}`, group: 'Группы · 0' };
       button.textContent = labels[button.dataset.studentFilter] || button.textContent;
@@ -243,6 +269,7 @@ function renderConnectedStudents(requests = []) {
     const labels = { all: `Все · ${activeRequests.length}`, student: `Ученики · ${activeRequests.length}`, group: 'Группы · 0' };
     button.textContent = labels[button.dataset.studentFilter] || button.textContent;
   });
+  updateTodayStudentStat();
   applyStudentFilters();
   renderConnectionConversations(activeRequests, 'teacher');
 }
@@ -688,9 +715,118 @@ navButtons.forEach(button => button.addEventListener('click', () => {
   mobileMoreMenu?.setAttribute('aria-hidden', 'true');
 }));
 
-document.querySelectorAll('.tasks input').forEach(input => {
-  input.addEventListener('change', () => input.closest('label').classList.toggle('done', input.checked));
-});
+let savedTeacherTasksCache = [];
+
+function teacherTaskDateKey(task) {
+  return moscowDateKey(task.due_at || task.created_at || new Date());
+}
+
+function renderTodayTasks(tasks = savedTeacherTasksCache) {
+  savedTeacherTasksCache = tasks || [];
+  const taskCard = document.querySelector('#today .tasks');
+  if (!taskCard) return;
+  taskCard.querySelectorAll('label,.text-action,.workspace-empty').forEach(item => item.remove());
+  const selectedKey = todayViewDateKey();
+  const dayTasks = savedTeacherTasksCache
+    .filter(task => teacherTaskDateKey(task) === selectedKey)
+    .sort((a, b) => Number(a.done) - Number(b.done) || new Date(a.due_at || a.created_at) - new Date(b.due_at || b.created_at));
+  if (!dayTasks.length) {
+    taskCard.insertAdjacentHTML('beforeend', emptyStateMarkup('Задач пока нет', 'Добавляйте небольшие дела на день, чтобы ничего не потерять.', 'task', '＋ Добавить задачу'));
+    return;
+  }
+  dayTasks.forEach(task => {
+    const label = document.createElement('label');
+    label.classList.toggle('done', Boolean(task.done));
+    label.dataset.taskId = task.id;
+    label.innerHTML = '<input type="checkbox"><span></span><small></small>';
+    const input = label.querySelector('input');
+    input.checked = Boolean(task.done);
+    label.querySelector('span').textContent = task.title;
+    const due = task.due_at
+      ? new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit' }).format(new Date(task.due_at))
+      : 'сегодня';
+    label.querySelector('small').textContent = task.done ? 'готово' : due;
+    input.addEventListener('change', () => toggleTeacherTask(task.id, input.checked));
+    taskCard.append(label);
+  });
+  const allButton = document.createElement('button');
+  allButton.className = 'text-action';
+  allButton.type = 'button';
+  allButton.textContent = 'Добавить ещё →';
+  allButton.addEventListener('click', addTodayTask);
+  taskCard.append(allButton);
+}
+
+async function loadTeacherTasks() {
+  const client = window.ecoleSupabase;
+  const userId = window.ecoleCurrentSession?.user?.id;
+  if (!client || !userId || window.ecoleUserRole === 'student') return;
+  const { data, error } = await client
+    .from('teacher_tasks')
+    .select('id,title,description,due_at,done,created_at,updated_at')
+    .eq('teacher_id', userId)
+    .order('due_at', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true });
+  if (error) {
+    showToast(`Задачи не загрузились из Supabase: ${error.message}`);
+    return;
+  }
+  renderTodayTasks(data || []);
+}
+
+async function toggleTeacherTask(taskId, done) {
+  const client = window.ecoleSupabase;
+  const task = savedTeacherTasksCache.find(item => item.id === taskId);
+  if (task) task.done = done;
+  renderTodayTasks(savedTeacherTasksCache);
+  if (!client || !taskId) return;
+  const { error } = await client
+    .from('teacher_tasks')
+    .update({ done, updated_at: new Date().toISOString() })
+    .eq('id', taskId);
+  if (error) {
+    showToast(`Не удалось обновить задачу: ${error.message}`);
+    if (task) task.done = !done;
+    renderTodayTasks(savedTeacherTasksCache);
+  }
+}
+
+async function addTodayTask() {
+  const taskCard = document.querySelector('#today .tasks');
+  if (!taskCard) return;
+  const text = window.prompt('Что добавить в задачи на сегодня?');
+  if (!text?.trim()) return;
+  const client = window.ecoleSupabase;
+  const userId = window.ecoleCurrentSession?.user?.id;
+  const selectedDate = todayViewDateKey();
+  const dueAt = new Date(`${selectedDate}T12:00:00+03:00`).toISOString();
+  if (!client || !userId) {
+    savedTeacherTasksCache.push({
+      id: `local-${Date.now()}`,
+      title: text.trim(),
+      due_at: dueAt,
+      done: false,
+      created_at: new Date().toISOString()
+    });
+    renderTodayTasks(savedTeacherTasksCache);
+    showToast('Задача добавлена локально');
+    return;
+  }
+  const { data, error } = await client
+    .from('teacher_tasks')
+    .insert({ teacher_id: userId, title: text.trim(), due_at: dueAt, done: false })
+    .select('id,title,description,due_at,done,created_at,updated_at')
+    .single();
+  if (error) {
+    showToast(`Не удалось сохранить задачу: ${error.message}`);
+    return;
+  }
+  savedTeacherTasksCache.push(data);
+  renderTodayTasks(savedTeacherTasksCache);
+  showToast('Задача сохранена');
+}
+
+document.querySelector('#today .tasks .round-add')?.addEventListener('click', addTodayTask);
 
 const todayLessonOffsets = {
   'light-materials': 138,
@@ -786,10 +922,35 @@ window.setInterval(() => {
 }, 30000);
 
 const modal = document.getElementById('modal');
-const openModal = () => {
+function showLessonModal() {
   modal.classList.add('open');
   modal.setAttribute('aria-hidden', 'false');
   if (window.gsap && !reducedMotion) gsap.fromTo('.modal', { y: 25, scale: .97, opacity: 0 }, { y: 0, scale: 1, opacity: 1, duration: .45, ease: 'power3.out' });
+}
+
+function resetLessonModal() {
+  editingLessonId = null;
+  document.querySelector('#modal .eyebrow').textContent = 'Новое занятие';
+  document.querySelector('#modal h2').innerHTML = 'Создадим пространство<br>для хорошего урока.';
+  document.getElementById('newLessonTitle').value = '';
+  document.getElementById('newLessonDuration').value = '90';
+  const now = moscowNow();
+  const dateInput = document.getElementById('newLessonDate');
+  const timeInput = document.getElementById('newLessonTime');
+  if (dateInput) {
+    dateInput.value = isoDate(now.date);
+    dateInput.removeAttribute('min');
+    dateInput.removeAttribute('max');
+  }
+  if (timeInput) timeInput.value = `${String((now.hour + 1) % 24).padStart(2, '0')}:00`;
+  const submit = document.querySelector('.modal-submit');
+  if (submit) submit.innerHTML = 'Создать занятие <span>↗</span>';
+  populateLessonParticipants();
+}
+
+const openModal = () => {
+  resetLessonModal();
+  showLessonModal();
 };
 const closeModal = () => {
   modal.classList.remove('open');
@@ -802,6 +963,10 @@ document.querySelector('.modal-close').addEventListener('click', closeModal);
 modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
 document.addEventListener('keydown', event => { if (event.key === 'Escape') closeModal(); });
 document.querySelector('.modal-submit').addEventListener('click', createNewLesson);
+['newLessonDate', 'newLessonTime'].forEach(id => {
+  const input = document.getElementById(id);
+  input?.addEventListener('click', () => input.showPicker?.());
+});
 
 const lessonData = {
   'olga-python': { student: 'Оля Крылова', avatar: 'ОК', course: 'Python · индивидуально', date: 'Понедельник, 22 июня', time: '10:00–11:30', number: '№ 8', title: 'Python: функции', description: 'Разобрать аргументы функций, области видимости и закрепить тему на небольшой практике.', readiness: 75, status: 'Запланировано' },
@@ -816,6 +981,8 @@ const lessonData = {
 const lessonColorClasses = ['rose-event', 'lavender-event', 'blue-event', 'peach-event', 'lime-event', 'dark-calendar-event'];
 let selectedNewLessonColor = 'lavender-event';
 let activeLessonButton = null;
+let editingLessonId = null;
+let scheduleWeekOffset = 0;
 
 function moscowLessonDateTime(dateValue, timeValue) {
   return new Date(`${dateValue}T${timeValue}:00+03:00`);
@@ -850,6 +1017,29 @@ function lessonGridPlacement(startsAt, duration) {
   const gridRow = Math.max(1, (hours - 9) * 2 + Math.floor(minutes / 30) + 1);
   const gridSpan = Math.max(2, Math.min(24 - gridRow + 1, Math.round(duration / 30)));
   return { gridDay, gridRow, gridSpan };
+}
+
+function lessonDateInputValue(startsAt) {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(startsAt);
+}
+
+function lessonTimeInputValue(startsAt) {
+  return new Intl.DateTimeFormat('ru-RU', {
+    timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+  }).format(startsAt);
+}
+
+function hasLessonConflict(startsAt, duration, ignoredLessonId = null) {
+  const start = startsAt.getTime();
+  const end = start + Number(duration || 60) * 60000;
+  return savedLessonRowsCache.find(row => {
+    if (ignoredLessonId && `db-${row.id}` === ignoredLessonId) return false;
+    const rowStart = new Date(row.starts_at).getTime();
+    const rowEnd = rowStart + Number(row.duration_minutes || 60) * 60000;
+    return start < rowEnd && end > rowStart;
+  });
 }
 
 function formatLessonTimeRange(startsAt, duration) {
@@ -898,6 +1088,38 @@ function lessonCountdownText(minutes) {
 }
 
 let savedLessonRowsCache = [];
+let todayViewOffsetDays = 0;
+
+function shiftedMoscowDate(days = 0) {
+  const now = moscowNow();
+  const date = new Date(now.date);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date;
+}
+
+function todayViewDate() {
+  return shiftedMoscowDate(todayViewOffsetDays);
+}
+
+function todayViewDateKey() {
+  return isoDate(todayViewDate());
+}
+
+function formatRuDayName(date) {
+  return capitalise(new Intl.DateTimeFormat('ru-RU', { timeZone: 'UTC', weekday: 'long' }).format(date));
+}
+
+function formatRuShortDate(date) {
+  return new Intl.DateTimeFormat('ru-RU', { timeZone: 'UTC', day: 'numeric', month: 'long' }).format(date);
+}
+
+function pluralRu(value, one, few, many) {
+  const mod10 = value % 10;
+  const mod100 = value % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+}
 
 function lessonActionState(row) {
   const start = new Date(row.starts_at).getTime();
@@ -924,9 +1146,61 @@ function refreshSavedLessonActions() {
   });
 }
 
+function updateWeekLoad(rows = []) {
+  const weekload = document.querySelector('#today .weekload');
+  if (!weekload) return;
+  const selectedDate = todayViewDate();
+  const selectedDayIndex = (selectedDate.getUTCDay() + 6) % 7;
+  const weekStart = new Date(selectedDate);
+  weekStart.setUTCDate(selectedDate.getUTCDate() - selectedDayIndex);
+  const buckets = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(weekStart);
+    date.setUTCDate(weekStart.getUTCDate() + index);
+    const key = isoDate(date);
+    const dayRows = rows.filter(row => lessonStartDateKey(row) === key);
+    const minutes = dayRows.reduce((sum, row) => sum + Number(row.duration_minutes || 60), 0);
+    return { date, key, count: dayRows.length, minutes };
+  });
+  const totalLessons = buckets.reduce((sum, day) => sum + day.count, 0);
+  const totalMinutes = buckets.reduce((sum, day) => sum + day.minutes, 0);
+  const title = weekload.querySelector('h3');
+  const hours = totalMinutes / 60;
+  if (title) {
+    const hoursText = Number.isInteger(hours) ? String(hours) : String(hours.toFixed(1)).replace('.', ',');
+    title.textContent = `${totalLessons} ${pluralRu(totalLessons, 'урок', 'урока', 'уроков')} · ${hoursText} ${pluralRu(Math.round(hours), 'час', 'часа', 'часов')}`;
+  }
+  const maxMinutes = Math.max(60, ...buckets.map(day => day.minutes));
+  weekload.querySelectorAll('.week-bars > div').forEach((bar, index) => {
+    const bucket = buckets[index];
+    if (!bucket) return;
+    const height = bucket.minutes ? Math.max(12, Math.round((bucket.minutes / maxMinutes) * 100)) : 4;
+    bar.classList.toggle('current', bucket.key === todayViewDateKey());
+    bar.querySelector('i')?.style.setProperty('--h', `${height}%`);
+    const label = bar.querySelector('span');
+    const small = bar.querySelector('small');
+    if (label) {
+      label.childNodes[0].textContent = new Intl.DateTimeFormat('ru-RU', { timeZone: 'UTC', weekday: 'short' }).format(bucket.date).replace('.', '');
+    }
+    if (small) small.textContent = String(bucket.count);
+  });
+}
+
+function updateTodayStudentStat() {
+  const activeCount = teacherConnectionRows.filter(row => row.status === 'active').length;
+  const activeStudentValue = document.querySelector('#today .stat-strip article:nth-child(2) strong');
+  const activeStudentNote = document.querySelector('#today .stat-strip article:nth-child(2) em');
+  if (activeStudentValue) activeStudentValue.textContent = String(activeCount);
+  if (activeStudentNote) activeStudentNote.textContent = activeCount ? 'Подключено' : 'Пока пусто';
+}
+
 function updateTodayFromLessons(rows = []) {
   savedLessonRowsCache = rows;
-  const today = moscowDateKey();
+  const today = todayViewDateKey();
+  const selectedDate = todayViewDate();
+  const selectedIsToday = todayViewOffsetDays === 0;
+  const agendaDay = document.querySelector('#today .agenda-panel .section-heading h3');
+  if (agendaDay) agendaDay.textContent = formatRuDayName(selectedDate);
+  document.querySelectorAll('#today .date-switch span').forEach(label => { label.textContent = formatRuShortDate(selectedDate); });
   const todayRows = rows
     .filter(row => lessonStartDateKey(row) === today)
     .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
@@ -939,7 +1213,16 @@ function updateTodayFromLessons(rows = []) {
   const lessonCount = document.querySelector('#today .stat-strip article:first-child strong');
   if (lessonCount) lessonCount.textContent = String(todayRows.length);
   const lessonNote = document.querySelector('#today .stat-strip article:first-child em');
-  if (lessonNote) lessonNote.textContent = todayRows.length ? 'Сегодня' : 'Пока пусто';
+  if (lessonNote) lessonNote.textContent = todayRows.length ? (selectedIsToday ? 'Сегодня' : formatRuShortDate(selectedDate)) : 'Пока пусто';
+  const lessonDurationNote = document.querySelector('#today .stat-strip article:first-child em');
+  const todayMinutes = todayRows.reduce((sum, row) => sum + Number(row.duration_minutes || 60), 0);
+  if (lessonDurationNote && todayRows.length) {
+    const h = Math.floor(todayMinutes / 60);
+    const m = todayMinutes % 60;
+    lessonDurationNote.textContent = `${h ? `${h} ч` : ''}${h && m ? ' ' : ''}${m ? `${m} мин` : ''}` || 'Сегодня';
+  }
+  updateTodayStudentStat();
+  updateWeekLoad(rows);
 
   const agenda = document.querySelector('#today .agenda-timeline');
   if (agenda) {
@@ -983,7 +1266,7 @@ function updateTodayFromLessons(rows = []) {
   const summary = document.getElementById('todayLessonSummary');
   const nextLesson = document.querySelector('#today .next-compact');
   if (!nearest) {
-    if (summary) summary.textContent = 'На сегодня занятий пока нет';
+    if (summary) summary.textContent = selectedIsToday ? 'На сегодня занятий пока нет' : `На ${formatRuShortDate(selectedDate)} занятий пока нет`;
     if (nextLesson) nextLesson.innerHTML = `<span class="eyebrow">Ближайший урок</span>${emptyStateMarkup('Уроков пока нет', 'Добавьте занятие, чтобы видеть подготовку и время начала.', 'lesson', '+ Новое занятие')}`;
     return;
   }
@@ -999,6 +1282,22 @@ function updateTodayFromLessons(rows = []) {
   }
 }
 
+document.querySelector('[data-today-day-prev]')?.addEventListener('click', () => {
+  todayViewOffsetDays -= 1;
+  updateTodayFromLessons(savedLessonRowsCache);
+  renderTodayTasks(savedTeacherTasksCache);
+});
+document.querySelector('[data-today-day-next]')?.addEventListener('click', () => {
+  todayViewOffsetDays += 1;
+  updateTodayFromLessons(savedLessonRowsCache);
+  renderTodayTasks(savedTeacherTasksCache);
+});
+document.querySelector('[data-today-day-reset]')?.addEventListener('click', () => {
+  todayViewOffsetDays = 0;
+  updateTodayFromLessons(savedLessonRowsCache);
+  renderTodayTasks(savedTeacherTasksCache);
+});
+
 function renderLessonEvent(lessonId, data, placement, colorClass = 'lavender-event') {
   const eventLayer = document.querySelector('.event-layer');
   if (!eventLayer) return null;
@@ -1006,6 +1305,7 @@ function renderLessonEvent(lessonId, data, placement, colorClass = 'lavender-eve
   event.className = `calendar-event ${colorClass}`;
   event.dataset.lesson = lessonId;
   event.dataset.persistedLesson = 'true';
+  if (data.dateKey) event.dataset.dateKey = data.dateKey;
   event.style.gridColumn = String(placement.gridDay);
   event.style.gridRow = `${placement.gridRow} / span ${placement.gridSpan}`;
   const time = document.createElement('small');
@@ -1014,12 +1314,11 @@ function renderLessonEvent(lessonId, data, placement, colorClass = 'lavender-eve
   heading.textContent = data.title;
   const meta = document.createElement('span');
   meta.textContent = `${data.student} · ${data.course.split(' · ')[0]}`;
-  const badge = document.createElement('i');
-  badge.textContent = data.course.includes('Груп') ? 'GR' : data.course.includes('Мент') ? 'ME' : '1:1';
-  event.append(time, heading, meta, badge);
+  event.append(time, heading, meta);
   event.addEventListener('click', () => openLessonDrawer(event));
   eventLayer.querySelector('.workspace-empty')?.remove();
   eventLayer.append(event);
+  updateScheduleWeek();
   return event;
 }
 
@@ -1042,6 +1341,7 @@ function lessonRowToUi(row) {
       avatar: initialsFromName(participant),
       course: `${uiFormat} · сохранено`,
       date: formatLessonDateLabel(startsAt),
+      dateKey: lessonDateInputValue(startsAt),
       time: formatLessonTimeRange(startsAt, duration),
       number: 'Сохранено',
       title: row.title,
@@ -1097,6 +1397,75 @@ document.querySelectorAll('[data-new-lesson-color]').forEach(button => button.ad
   document.getElementById('newLessonColorName').textContent = button.dataset.colorName;
 }));
 
+function setNewLessonColor(colorClass = 'lavender-event') {
+  const button = document.querySelector(`[data-new-lesson-color="${colorClass}"]`) || document.querySelector('[data-new-lesson-color="lavender-event"]');
+  if (!button) return;
+  selectedNewLessonColor = button.dataset.newLessonColor;
+  document.querySelectorAll('[data-new-lesson-color]').forEach(item => {
+    const active = item === button;
+    item.classList.toggle('active', active);
+    item.setAttribute('aria-checked', String(active));
+  });
+  document.getElementById('newLessonColorName').textContent = button.dataset.colorName;
+}
+
+function openLessonEditor(lessonId) {
+  const row = savedLessonRowsCache.find(item => `db-${item.id}` === lessonId);
+  if (!row) {
+    showToast('Редактирование доступно для уроков, сохранённых в Supabase');
+    return;
+  }
+  editingLessonId = lessonId;
+  populateLessonParticipants();
+  const startsAt = new Date(row.starts_at);
+  const prepared = lessonRowToUi(row);
+  document.querySelector('#modal .eyebrow').textContent = 'Редактирование';
+  document.querySelector('#modal h2').innerHTML = 'Обновим занятие<br>без лишней суеты.';
+  document.getElementById('newLessonTitle').value = row.title || '';
+  const participantSelect = document.getElementById('newLessonParticipant');
+  const participant = row.location || prepared.data.student || '';
+  if (participant && ![...participantSelect.options].some(option => option.value === participant)) {
+    const option = document.createElement('option');
+    option.value = participant;
+    option.textContent = participant;
+    participantSelect.append(option);
+  }
+  participantSelect.disabled = false;
+  participantSelect.value = participant;
+  document.getElementById('newLessonDate').value = lessonDateInputValue(startsAt);
+  document.getElementById('newLessonTime').value = lessonTimeInputValue(startsAt);
+  document.getElementById('newLessonDuration').value = String(row.duration_minutes || 90);
+  document.getElementById('newLessonFormat').value = prepared.data.course.split(' · ')[0] || 'Индивидуальное';
+  setNewLessonColor(prepared.colorClass);
+  const submit = document.querySelector('.modal-submit');
+  if (submit) submit.innerHTML = 'Сохранить изменения <span>↗</span>';
+  showLessonModal();
+}
+
+async function deleteActiveLesson() {
+  const lessonId = activeLessonButton?.dataset.lesson;
+  if (!lessonId?.startsWith('db-')) {
+    showToast('Удалять можно уроки, сохранённые в Supabase');
+    return;
+  }
+  if (!window.confirm('Удалить это занятие из расписания?')) return;
+  const client = window.ecoleSupabase;
+  const userId = window.ecoleCurrentSession?.user?.id;
+  if (!client || !userId) return;
+  const { error } = await client
+    .from('lessons')
+    .delete()
+    .eq('id', lessonId.replace('db-', ''))
+    .eq('teacher_id', userId);
+  if (error) {
+    showToast(`Не удалось удалить урок: ${error.message}`);
+    return;
+  }
+  closeLessonDrawer();
+  await loadSavedLessons();
+  showToast('Занятие удалено');
+}
+
 async function createNewLesson() {
   const titleInput = document.getElementById('newLessonTitle');
   const participantInput = document.getElementById('newLessonParticipant');
@@ -1107,12 +1476,18 @@ async function createNewLesson() {
   const requiredFields = [titleInput, participantInput, dateInput, timeInput];
   const invalidField = requiredFields.find(field => !field?.checkValidity());
   if (invalidField) { invalidField.reportValidity(); return; }
+  const duration = Number(durationInput.value);
+  if (!Number.isFinite(duration) || duration < 5) {
+    durationInput.setCustomValidity('Укажите длительность урока в минутах');
+    durationInput.reportValidity();
+    durationInput.setCustomValidity('');
+    return;
+  }
 
   const lessonDate = new Date(`${dateInput.value}T12:00:00`);
   const jsDay = lessonDate.getDay();
   const gridDay = jsDay === 0 ? 7 : jsDay;
   const [hours, minutes] = timeInput.value.split(':').map(Number);
-  const duration = Number(durationInput.value);
   const gridRow = Math.max(1, (hours - 9) * 2 + Math.floor(minutes / 30) + 1);
   const gridSpan = Math.max(2, Math.min(24 - gridRow + 1, Math.round(duration / 30)));
   const endMinutes = hours * 60 + minutes + duration;
@@ -1122,8 +1497,27 @@ async function createNewLesson() {
   const participant = participantInput.value.trim();
   const title = titleInput.value.trim();
   const format = formatInput.value;
+  if (!participant) {
+    if (participantInput.disabled) {
+      showToast('Сначала примите ученика в разделе “Ученики и группы”');
+    } else {
+      participantInput.setCustomValidity('Выберите ученика или группу');
+      participantInput.reportValidity();
+      participantInput.setCustomValidity('');
+    }
+    return;
+  }
   const initials = participant.split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
   const dateLabel = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).format(lessonDate);
+  const startsAt = moscowLessonDateTime(dateInput.value, timeInput.value);
+  const conflict = hasLessonConflict(startsAt, duration, editingLessonId);
+  if (conflict) {
+    timeInput.setCustomValidity('На это время уже стоит другой урок');
+    timeInput.reportValidity();
+    timeInput.setCustomValidity('');
+    showToast('Конфликт расписания: уроки накладываются друг на друга');
+    return;
+  }
 
   const client = window.ecoleSupabase;
   const userId = window.ecoleCurrentSession?.user?.id;
@@ -1139,13 +1533,11 @@ async function createNewLesson() {
     submitButton.innerHTML = 'Сохраняем… <span>↗</span>';
   }
 
-  const { error } = await client
-    .from('lessons')
-    .insert({
+  const lessonPayload = {
       teacher_id: userId,
       group_id: null,
       title,
-      starts_at: moscowLessonDateTime(dateInput.value, timeInput.value).toISOString(),
+      starts_at: startsAt.toISOString(),
       duration_minutes: duration,
       format: normalizeLessonFormat(format),
       location: participant,
@@ -1155,7 +1547,11 @@ async function createNewLesson() {
         temporaryParticipantLabel: participant
       }),
       student_summary: format
-    });
+    };
+  const query = editingLessonId
+    ? client.from('lessons').update(lessonPayload).eq('id', editingLessonId.replace('db-', '')).eq('teacher_id', userId)
+    : client.from('lessons').insert(lessonPayload);
+  const { error } = await query;
 
   if (submitButton) {
     submitButton.disabled = false;
@@ -1163,53 +1559,22 @@ async function createNewLesson() {
   }
 
   if (error) {
-    showToast(`Урок не сохранился в Supabase: ${error.message}`);
+    const conflictMessage = error.message === 'lesson_time_conflict'
+      ? 'Конфликт расписания: в базе уже есть урок на это время'
+      : `Урок не сохранился в Supabase: ${error.message}`;
+    showToast(conflictMessage);
     return;
   }
 
-  loadSavedLessons();
-
-  lessonData[lessonId] = {
-    student: participant,
-    avatar: initials,
-    course: `${format} · новое занятие`,
-    date: dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1),
-    time: `${timeInput.value}–${endTime}`,
-    number: 'Новое',
-    title,
-    description: 'Добавьте план, материалы и домашнее задание перед проведением урока.',
-    readiness: 20,
-    status: 'Новое занятие',
-    color: colorClass
-  };
-
-  const event = document.createElement('button');
-  event.className = `calendar-event ${colorClass}`;
-  event.dataset.lesson = lessonId;
-  event.dataset.persistedLesson = 'true';
-  event.style.gridColumn = String(gridDay);
-  event.style.gridRow = `${gridRow} / span ${gridSpan}`;
-  const time = document.createElement('small');
-  time.textContent = `${timeInput.value}–${endTime}`;
-  const heading = document.createElement('strong');
-  heading.textContent = title;
-  const meta = document.createElement('span');
-  meta.textContent = `${participant} · ${format.toLowerCase()}`;
-  const badge = document.createElement('i');
-  badge.textContent = format === 'Групповое' ? 'GR' : format === 'Менторинг' ? 'ME' : '1:1';
-  event.append(time, heading, meta, badge);
-  event.addEventListener('click', () => openLessonDrawer(event));
-  const eventLayer = document.querySelector('.event-layer');
-  eventLayer?.querySelector('.workspace-empty')?.remove();
-  eventLayer?.append(event);
-
+  const editedLessonId = editingLessonId;
+  await loadSavedLessons();
   closeModal();
   switchView('schedule');
   requestAnimationFrame(() => {
-    if (window.gsap && !reducedMotion) gsap.fromTo(event, { scale: .82, opacity: 0 }, { scale: 1, opacity: 1, duration: .45, ease: 'back.out(1.5)' });
-    window.setTimeout(() => openLessonDrawer(event), reducedMotion ? 0 : 260);
+    const event = editedLessonId ? document.querySelector(`.calendar-event[data-lesson="${editedLessonId}"]`) : null;
+    if (event) window.setTimeout(() => openLessonDrawer(event), reducedMotion ? 0 : 260);
   });
-  showToast('Новое занятие добавлено в расписание');
+  showToast(editedLessonId ? 'Занятие обновлено' : 'Новое занятие добавлено в расписание');
 }
 
 const scheduleShell = document.getElementById('scheduleShell');
@@ -1276,6 +1641,13 @@ function closeLessonDrawer() {
 
 document.querySelectorAll('.calendar-event').forEach(event => event.addEventListener('click', () => openLessonDrawer(event)));
 document.querySelector('.drawer-close')?.addEventListener('click', closeLessonDrawer);
+document.querySelector('[data-lesson-more]')?.addEventListener('click', () => {
+  if (activeLessonButton) openLessonEditor(activeLessonButton.dataset.lesson);
+});
+document.querySelector('[data-edit-lesson]')?.addEventListener('click', () => {
+  if (activeLessonButton) openLessonEditor(activeLessonButton.dataset.lesson);
+});
+document.querySelector('[data-delete-lesson]')?.addEventListener('click', deleteActiveLesson);
 
 document.querySelectorAll('[data-lesson-color]').forEach(button => button.addEventListener('click', () => {
   if (!activeLessonButton) return;
@@ -1597,6 +1969,52 @@ function isoDate(date) {
 
 function capitalise(value) { return value.charAt(0).toUpperCase() + value.slice(1); }
 
+function scheduleWeekStartDate() {
+  const now = moscowNow();
+  const dayIndex = (now.date.getUTCDay() + 6) % 7;
+  const weekStart = new Date(now.date);
+  weekStart.setUTCDate(now.date.getUTCDate() - dayIndex + scheduleWeekOffset * 7);
+  return weekStart;
+}
+
+function updateScheduleWeek() {
+  const weekStart = scheduleWeekStartDate();
+  const weekEnd = new Date(weekStart);
+  weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
+  const now = moscowNow();
+  const todayKey = isoDate(now.date);
+  const visibleKeys = new Set();
+  document.querySelectorAll('.calendar-days button').forEach((button, index) => {
+    const date = new Date(weekStart);
+    date.setUTCDate(weekStart.getUTCDate() + index);
+    const key = isoDate(date);
+    visibleKeys.add(key);
+    button.querySelector('small').textContent = new Intl.DateTimeFormat('ru-RU', { weekday: 'short', timeZone: 'UTC' }).format(date).replace('.', '');
+    button.querySelector('b').textContent = String(date.getUTCDate());
+    button.classList.toggle('current', key === todayKey);
+  });
+  document.querySelectorAll('.day-columns i').forEach((column, index) => {
+    const date = new Date(weekStart);
+    date.setUTCDate(weekStart.getUTCDate() + index);
+    const isToday = isoDate(date) === todayKey;
+    column.classList.toggle('is-today', isToday);
+    column.classList.toggle('current-column', isToday);
+  });
+  document.querySelectorAll('.calendar-event[data-date-key]').forEach(event => {
+    event.hidden = !visibleKeys.has(event.dataset.dateKey);
+  });
+  const weekLabel = document.querySelector('[data-schedule-week-label]') || document.querySelector('.calendar-nav strong');
+  if (weekLabel) {
+    const start = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: weekStart.getUTCMonth() === weekEnd.getUTCMonth() ? undefined : 'long', timeZone: 'UTC' }).format(weekStart);
+    const end = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(weekEnd);
+    weekLabel.textContent = `${start}–${end}`;
+  }
+}
+
+document.querySelector('[data-schedule-week-prev]')?.addEventListener('click', () => { scheduleWeekOffset -= 1; updateScheduleWeek(); });
+document.querySelector('[data-schedule-week-next]')?.addEventListener('click', () => { scheduleWeekOffset += 1; updateScheduleWeek(); });
+document.querySelector('.today-button')?.addEventListener('click', () => { scheduleWeekOffset = 0; updateScheduleWeek(); });
+
 function updateMoscowInterface(session = window.ecoleCurrentSession) {
   const now = moscowNow();
   const dateText = capitalise(new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()));
@@ -1609,9 +2027,11 @@ function updateMoscowInterface(session = window.ecoleCurrentSession) {
   if (todayKicker) todayKicker.innerHTML = `<span></span> ${dateText}`;
   const title = document.getElementById('today-title');
   if (title) title.textContent = firstName ? `${greeting}, ${firstName}` : greeting;
-  const agendaDay = document.querySelector('#today .agenda-panel .section-heading h3');
-  if (agendaDay) agendaDay.textContent = dayName;
-  document.querySelectorAll('#today .date-switch span').forEach(label => { label.textContent = shortDate; });
+  if (todayViewOffsetDays === 0) {
+    const agendaDay = document.querySelector('#today .agenda-panel .section-heading h3');
+    if (agendaDay) agendaDay.textContent = dayName;
+    document.querySelectorAll('#today .date-switch span').forEach(label => { label.textContent = shortDate; });
+  }
 
   let clock = document.getElementById('moscowClock');
   if (!clock) {
@@ -1622,20 +2042,7 @@ function updateMoscowInterface(session = window.ecoleCurrentSession) {
   }
   clock.textContent = `${String(now.hour).padStart(2, '0')}:${String(now.minute).padStart(2, '0')} МСК`;
 
-  const dayIndex = (now.date.getUTCDay() + 6) % 7;
-  const weekStart = new Date(now.date); weekStart.setUTCDate(now.date.getUTCDate() - dayIndex);
-  const weekEnd = new Date(weekStart); weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
-  const days = document.querySelectorAll('.calendar-days button');
-  days.forEach((button, index) => {
-    const date = new Date(weekStart); date.setUTCDate(weekStart.getUTCDate() + index);
-    button.querySelector('small').textContent = new Intl.DateTimeFormat('ru-RU', { weekday: 'short', timeZone: 'UTC' }).format(date).replace('.', '');
-    button.querySelector('b').textContent = String(date.getUTCDate());
-    button.classList.toggle('current', isoDate(date) === isoDate(now.date));
-  });
-  document.querySelectorAll('.day-columns i').forEach((column, index) => {
-    column.classList.toggle('is-today', index === dayIndex);
-    column.classList.toggle('current-column', index === dayIndex);
-  });
+  updateScheduleWeek();
   const nowLine = document.querySelector('.now-line');
   if (nowLine) {
     const minutesFromStart = (now.hour * 60 + now.minute) - (9 * 60);
@@ -1645,17 +2052,10 @@ function updateMoscowInterface(session = window.ecoleCurrentSession) {
     const label = nowLine.querySelector('span');
     if (label) label.textContent = `${String(now.hour).padStart(2, '0')}:${String(now.minute).padStart(2, '0')}`;
   }
-  const weekLabel = document.querySelector('.calendar-nav strong');
-  if (weekLabel) {
-    const start = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: weekStart.getUTCMonth() === weekEnd.getUTCMonth() ? undefined : 'long', timeZone: 'UTC' }).format(weekStart);
-    const end = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(weekEnd);
-    weekLabel.textContent = `${start}–${end}`;
-  }
-
   const dateInput = document.getElementById('newLessonDate');
-  if (dateInput) { dateInput.value = isoDate(now.date); dateInput.min = isoDate(weekStart); dateInput.max = isoDate(weekEnd); }
+  if (dateInput && !editingLessonId) { dateInput.value = isoDate(now.date); dateInput.removeAttribute('min'); dateInput.removeAttribute('max'); }
   const timeInput = document.getElementById('newLessonTime');
-  if (timeInput) timeInput.value = `${String(Math.min(20, now.hour + 1)).padStart(2, '0')}:00`;
+  if (timeInput && !editingLessonId) timeInput.value = `${String((now.hour + 1) % 24).padStart(2, '0')}:00`;
 
   if (firstName) {
     const lastName = session?.user?.user_metadata?.last_name?.trim() || '';
@@ -1668,9 +2068,9 @@ document.addEventListener('click', event => {
   const action = event.target.closest('[data-empty-action]')?.dataset.emptyAction;
   if (!action) return;
   if (action === 'lesson') { openModal(); return; }
+  if (action === 'task') { addTodayTask(); return; }
   const labels = {
     student: 'Форма добавления ученика появится на следующем этапе',
-    task: 'Форма новой задачи появится на следующем этапе',
     homework: 'Сначала добавьте ученика, затем можно будет выдать задание',
     material: 'Загрузка материалов появится на следующем этапе'
   };
@@ -1684,6 +2084,7 @@ document.addEventListener('ecole:session', event => {
   const userId = event.detail.session?.user?.id;
   if (userId) {
     loadSavedLessons();
+    loadTeacherTasks();
     loadTeacherInviteCode();
     loadTeacherConnections();
     loadStudentConnections();

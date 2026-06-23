@@ -295,3 +295,40 @@ body:not(.is-authenticated) .mobile-nav,body:not(.is-authenticated) .mobile-more
 
 /* Student invite modal */
 .invite-modal p{font-size:13px;line-height:1.55;color:#625d60;margin:0 0 14px}.invite-modal p strong{color:#111}.invite-modal .primary-button{width:100%;display:flex;justify-content:space-between;margin-top:12px}.invite-modal .primary-button:disabled{opacity:.58;cursor:not-allowed}
+
+/* Teacher home cleanup after feedback */
+#today .focus-mini{display:none!important}
+body[data-user-role="teacher"] .topbar-actions{gap:10px}
+#today .today-header h1{font-size:clamp(38px,3.4vw,54px)}
+#today .today-header p{font-size:16px;line-height:1.55}
+#today .kicker,.eyebrow{font-size:12px}
+#today .stat-strip small{font-size:14px}
+#today .stat-strip strong{font-size:30px}
+#today .stat-strip em{font-size:13px}
+#today .agenda-panel .section-heading h3,#today .weekload h3,#today .tasks h3,#today .activity h3{font-size:26px}
+#today .agenda-event h4{font-size:18px}
+#today .agenda-event p,#today .event-students>span,#today .next-compact p,#today .activity-item p,#today .tasks label{font-size:15px}
+#today .agenda-event>button,#today .tasks .soft-button,#today .tasks .text-action,#today .date-switch button,#today .soft-button{font-size:13px}
+#today .weekload{min-height:300px;display:flex;flex-direction:column}
+#today .weekload .card-head{align-items:flex-start}
+#today .week-bars{flex:1;min-height:150px;align-items:stretch;border-top:1px solid var(--line);padding:20px 28px 0}
+#today .week-bars>div{justify-content:flex-end;gap:10px}
+#today .week-bars i{min-height:4px;transform-origin:bottom;border-radius:7px 7px 3px 3px}
+#today .week-bars span{font-size:13px}
+#today .week-bars small{font-size:12px}
+#today .tasks .round-add{cursor:pointer}
+#today .tasks .workspace-empty .soft-button{font-size:13px;min-height:42px}
+@media(max-width:760px){#today .today-header h1{font-size:31px}#today .stat-strip strong{font-size:22px}#today .agenda-panel .section-heading h3,#today .weekload h3,#today .tasks h3,#today .activity h3{font-size:22px}}
+
+/* Schedule form polish */
+.modal input,.modal select{min-height:50px;color:#171717;font-weight:750;transition:border-color .2s ease,box-shadow .2s ease,background .2s ease}
+.modal input:hover,.modal select:hover{border-color:rgba(17,17,17,.24)}
+.modal input:focus,.modal select:focus{border-color:#b99bc2;box-shadow:0 0 0 4px rgba(185,155,194,.25)}
+.modal input::placeholder{color:#a09a9d;font-weight:650}
+.modal select.product-select{appearance:none;background:#fff linear-gradient(135deg,transparent calc(100% - 31px),rgba(244,235,242,.9) calc(100% - 31px)) no-repeat;background-size:100% 100%;padding-right:42px;cursor:pointer}
+.modal label:has(select.product-select){position:relative}
+.modal label:has(select.product-select)::after{content:"⌄";position:absolute;right:16px;bottom:14px;color:#111;font-size:14px;pointer-events:none}
+.modal select:disabled{opacity:.62;cursor:not-allowed;background:#f3eeeb}
+.drawer-action.danger{border:1px solid rgba(190,68,82,.24);background:rgba(255,255,255,.8);color:#a82b3a}
+.drawer-action.danger:hover{background:#a82b3a;color:#fff}
+.calendar-event i{display:none!important}
