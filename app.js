@@ -191,6 +191,8 @@ studentSearch?.addEventListener('input', applyStudentFilters);
 const connectionRequestsPanel = document.getElementById('connectionRequestsPanel');
 const connectionRequestList = document.getElementById('connectionRequestList');
 const connectionRequestsState = document.getElementById('connectionRequestsState');
+let teacherConnectionRows = [];
+let studentConnectionRows = [];
 
 function connectionStudentName(request) {
   const name = `${request.first_name || ''} ${request.last_name || ''}`.trim();
@@ -198,6 +200,7 @@ function connectionStudentName(request) {
 }
 
 function renderConnectedStudents(requests = []) {
+  teacherConnectionRows = requests;
   const grid = document.querySelector('.students-grid');
   if (!grid) return;
   const activeRequests = requests.filter(request => request.status === 'active');
@@ -224,7 +227,14 @@ function renderConnectedStudents(requests = []) {
     button.dataset.name = name;
     button.dataset.course = 'Новое обучение';
     button.dataset.avatar = avatar;
-    button.addEventListener('click', () => openPersonWorkspace({ name, course: 'Новое обучение', avatar }, 'course'));
+    button.addEventListener('click', () => openPersonWorkspace({
+      name,
+      course: 'Новое обучение',
+      avatar,
+      isRealConnection: true,
+      studentEmail: request.student_email,
+      connectionId: request.connection_id
+    }, 'overview'));
     grid.append(card);
   });
   const pendingCount = requests.filter(request => request.status === 'pending').length;
@@ -234,6 +244,7 @@ function renderConnectedStudents(requests = []) {
     button.textContent = labels[button.dataset.studentFilter] || button.textContent;
   });
   applyStudentFilters();
+  renderConnectionConversations(activeRequests, 'teacher');
 }
 
 function renderConnectionRequests(requests = []) {
@@ -299,6 +310,62 @@ async function loadTeacherConnections() {
   renderConnectedStudents(data || []);
 }
 
+function teacherNameFromConnection(connection) {
+  const name = `${connection.first_name || ''} ${connection.last_name || ''}`.trim();
+  return name || connection.teacher_email || 'Преподаватель';
+}
+
+function renderStudentConnections(connections = []) {
+  studentConnectionRows = connections;
+  const active = connections.filter(connection => connection.status === 'active');
+  const pending = connections.filter(connection => connection.status === 'pending');
+  const greeting = document.getElementById('studentGreeting');
+  const courseCard = document.querySelector('.student-course-card .student-course-placeholder');
+  const nextCard = document.querySelector('.student-next-card');
+  const scheduleEmpty = document.querySelector('#student-schedule .student-simple-empty');
+  if (!connections.length) return;
+  if (greeting) {
+    if (active.length) {
+      greeting.textContent = `Вы подключены к преподавателю ${teacherNameFromConnection(active[0])}. Расписание, задания и материалы появятся после того, как преподаватель их добавит.`;
+    } else if (pending.length) {
+      greeting.textContent = `Заявка преподавателю ${teacherNameFromConnection(pending[0])} отправлена. Ждём подтверждения.`;
+    }
+  }
+  if (courseCard) {
+    const connection = active[0] || pending[0];
+    const name = teacherNameFromConnection(connection);
+    courseCard.innerHTML = `<span class="student-card-empty-icon" aria-hidden="true">${initialsFromName(name)}</span><div><strong>${active.length ? 'Вы подключены к преподавателю' : 'Заявка ожидает подтверждения'}</strong><p>${name}${connection.teacher_email ? ` · ${connection.teacher_email}` : ''}</p></div><button class="soft-button" type="button" data-view-jump="student-schedule">${active.length ? 'Открыть расписание' : 'Проверить позже'}</button>`;
+    courseCard.querySelector('[data-view-jump]')?.addEventListener('click', event => switchView(event.currentTarget.dataset.viewJump));
+  }
+  if (nextCard && active.length) {
+    nextCard.querySelector('.student-status-pill').textContent = 'Подключено';
+    nextCard.querySelector('h2').textContent = 'Преподаватель подключён';
+    nextCard.querySelector('p').textContent = 'Занятий пока нет. Когда преподаватель запланирует урок, он появится здесь и в расписании.';
+    const action = nextCard.querySelector('[data-student-action="join"]');
+    if (action) {
+      action.removeAttribute('data-student-action');
+      action.textContent = 'Открыть расписание →';
+      action.addEventListener('click', () => switchView('student-schedule'), { once: true });
+    }
+  }
+  if (scheduleEmpty && active.length) {
+    scheduleEmpty.innerHTML = '<span class="student-card-empty-icon" aria-hidden="true">□</span><div><span class="eyebrow">Преподаватель подключён</span><h2>Расписание пока пусто</h2><p>Когда преподаватель назначит урок, здесь появятся дата, московское время и ссылка на занятие.</p></div>';
+  }
+  renderConnectionConversations(active, 'student');
+}
+
+async function loadStudentConnections() {
+  const client = window.ecoleSupabase;
+  const userId = window.ecoleCurrentSession?.user?.id;
+  if (!client || !userId || window.ecoleUserRole !== 'student') return;
+  const { data, error } = await client.rpc('get_student_teacher_connections');
+  if (error) {
+    showToast(`Подключение не загрузилось: ${error.message}`);
+    return;
+  }
+  renderStudentConnections(data || []);
+}
+
 async function updateTeacherConnection(connectionId, action) {
   const client = window.ecoleSupabase;
   if (!client || !connectionId) return;
@@ -336,16 +403,39 @@ function selectPersonTab(tabName = 'course') {
   }
 }
 
+function renderEmptyPersonWorkspace(person) {
+  const overview = document.querySelector('[data-person-panel="overview"]');
+  const course = document.querySelector('[data-person-panel="course"]');
+  const materials = document.querySelector('[data-person-panel="materials"]');
+  const history = document.querySelector('[data-person-panel="history"]');
+  if (overview) {
+    overview.innerHTML = `<article class="panel"><span class="eyebrow">О человеке</span><h2>Профиль подключён</h2><p>${person.studentEmail || 'Ученик'} уже связан с вашим профилем. Здесь появятся цель обучения, заметки и ближайшая встреча, когда вы их добавите.</p></article><article class="panel"><span class="eyebrow">Следующая встреча</span><h2>Пока не назначена</h2><p>Запланируйте первый урок — он появится у вас и у ученика в расписании.</p></article>`;
+  }
+  if (course) {
+    course.className = 'person-panel course-workspace';
+    course.innerHTML = `<section class="course-lessons reveal real-empty-course">${emptyStateMarkup('Курс пока пустой', 'Добавьте первый урок, материалы или домашнее задание — и здесь начнёт собираться индивидуальная траектория ученика.', 'lesson', '＋ Запланировать урок')}</section>`;
+  }
+  if (materials) {
+    materials.innerHTML = `<article class="panel">${emptyStateMarkup('Материалов пока нет', 'Файлы и ссылки появятся здесь только после того, как вы добавите их к конкретному уроку или профилю ученика.', 'material', '＋ Добавить материал')}</article>`;
+  }
+  if (history) {
+    history.innerHTML = `<article class="panel">${emptyStateMarkup('История занятий пуста', 'Проведённые уроки, записи и домашние задания появятся здесь после первых занятий.', 'lesson', '＋ Запланировать урок')}</article>`;
+  }
+}
+
 function openPersonWorkspace(person, tabName = 'course') {
   activePerson = {
     name: person.name || 'Ученик',
     course: person.course || 'Индивидуальная программа',
-    avatar: person.avatar || '—'
+    avatar: person.avatar || '—',
+    isRealConnection: Boolean(person.isRealConnection),
+    studentEmail: person.studentEmail || ''
   };
   document.getElementById('personAvatar').textContent = activePerson.avatar;
   document.getElementById('person-detail-title').textContent = activePerson.name;
   document.getElementById('personCourseLabel').textContent = activePerson.course;
   document.getElementById('personCourseTitle').textContent = activePerson.course.split(' · ')[0];
+  if (activePerson.isRealConnection) renderEmptyPersonWorkspace(activePerson);
   selectPersonTab(tabName);
   switchView('person-detail');
 }
@@ -420,6 +510,61 @@ document.getElementById('saveHomeworkReview')?.addEventListener('click', () => {
   applyHomeworkFilters();
 });
 document.getElementById('homeworkFeedback')?.addEventListener('input', event => event.target.setCustomValidity(''));
+
+function renderChatPlaceholder(person) {
+  const chatPane = document.querySelector('.chat-pane');
+  const thread = document.getElementById('chatThread');
+  const composer = document.getElementById('messageComposer');
+  if (!chatPane || !thread) return;
+  document.getElementById('chatAvatar').textContent = person.avatar;
+  document.getElementById('chatName').textContent = person.name;
+  document.getElementById('chatContext').textContent = person.context;
+  thread.innerHTML = emptyStateMarkup('История сообщений пуста', 'Диалог создан из подключения ученика и преподавателя. Следующим шагом подключим сохранение сообщений в Supabase.', '', '');
+  composer?.querySelector('textarea')?.setAttribute('placeholder', 'Сообщения включим после обновления таблицы direct_messages');
+}
+
+function renderConnectionConversations(rows = [], viewer = 'teacher') {
+  const list = document.getElementById('conversationList');
+  if (!list) return;
+  const activeRows = rows.filter(row => row.status === 'active');
+  list.replaceChildren();
+  if (!activeRows.length) {
+    list.innerHTML = emptyStateMarkup('Диалогов пока нет', viewer === 'student' ? 'После подтверждения преподавателя здесь появится личный чат.' : 'После принятия ученика здесь появится личный чат.', '', '');
+    const chatPane = document.querySelector('.chat-pane');
+    if (chatPane) chatPane.innerHTML = emptyStateMarkup('Выберите будущий диалог', 'Переписка будет связана с конкретным учеником или группой.');
+    document.getElementById('messagesNavCount')?.replaceChildren(document.createTextNode('0'));
+    return;
+  }
+  activeRows.forEach((row, index) => {
+    const name = viewer === 'student' ? teacherNameFromConnection(row) : connectionStudentName(row);
+    const email = viewer === 'student' ? row.teacher_email : row.student_email;
+    const avatar = initialsFromName(name);
+    const button = document.createElement('button');
+    button.className = `conversation${index === 0 ? ' active' : ''}`;
+    button.dataset.unread = '0';
+    button.dataset.connectionConversation = row.connection_id;
+    button.innerHTML = `<span class="avatar peach">${avatar}</span><span><strong></strong><small></small></span><time>новый</time>`;
+    button.querySelector('strong').textContent = name;
+    button.querySelector('small').textContent = email ? `Диалог готов · ${email}` : 'Диалог готов';
+    button.addEventListener('click', () => {
+      document.querySelectorAll('.conversation').forEach(item => item.classList.toggle('active', item === button));
+      renderChatPlaceholder({
+        name,
+        avatar,
+        context: viewer === 'student' ? 'Личный диалог с преподавателем' : 'Личный диалог с учеником'
+      });
+    });
+    list.append(button);
+    if (index === 0) {
+      renderChatPlaceholder({
+        name,
+        avatar,
+        context: viewer === 'student' ? 'Личный диалог с преподавателем' : 'Личный диалог с учеником'
+      });
+    }
+  });
+  document.getElementById('messagesNavCount')?.replaceChildren(document.createTextNode('0'));
+}
 
 const conversationData = {
   sofia: { name: 'София Ли', avatar: 'СЛ', avatarClass: 'blue', context: 'Portfolio · личный диалог', course: 'Portfolio', messages: [
@@ -1541,6 +1686,7 @@ document.addEventListener('ecole:session', event => {
     loadSavedLessons();
     loadTeacherInviteCode();
     loadTeacherConnections();
+    loadStudentConnections();
   }
   if (userId && trackedSessionUser !== userId) {
     trackedSessionUser = userId;
