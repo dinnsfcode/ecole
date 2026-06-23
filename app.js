@@ -21,6 +21,7 @@ function switchView(id) {
   window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' });
   animateView(target);
   trackActivity('page_view', id);
+  if (id === 'students') loadTeacherConnections();
 }
 
 function applyRoleInterface(session, resolvedRole = window.ecoleUserRole) {
@@ -186,6 +187,143 @@ document.querySelectorAll('[data-student-filter]').forEach(button => button.addE
   applyStudentFilters();
 }));
 studentSearch?.addEventListener('input', applyStudentFilters);
+
+const connectionRequestsPanel = document.getElementById('connectionRequestsPanel');
+const connectionRequestList = document.getElementById('connectionRequestList');
+const connectionRequestsState = document.getElementById('connectionRequestsState');
+
+function connectionStudentName(request) {
+  const name = `${request.first_name || ''} ${request.last_name || ''}`.trim();
+  return name || request.student_email || 'Новый ученик';
+}
+
+function renderConnectedStudents(requests = []) {
+  const grid = document.querySelector('.students-grid');
+  if (!grid) return;
+  const activeRequests = requests.filter(request => request.status === 'active');
+  if (!activeRequests.length) {
+    grid.innerHTML = emptyStateMarkup('Добавьте первого ученика', 'Когда вы примете заявку, ученик появится здесь.', 'student', '＋ Добавить ученика');
+    document.querySelector('.nav-item[data-view="students"] .nav-count')?.replaceChildren(document.createTextNode(String(requests.filter(request => request.status === 'pending').length)));
+    document.querySelectorAll('[data-student-filter]').forEach(button => {
+      const labels = { all: `Все · ${activeRequests.length}`, student: `Ученики · ${activeRequests.length}`, group: 'Группы · 0' };
+      button.textContent = labels[button.dataset.studentFilter] || button.textContent;
+    });
+    return;
+  }
+  grid.replaceChildren();
+  activeRequests.forEach((request, index) => {
+    const name = connectionStudentName(request);
+    const avatar = initialsFromName(name);
+    const card = document.createElement('article');
+    card.className = `student-card reveal${index === 0 ? ' featured' : ''}`;
+    card.dataset.kind = 'student';
+    card.innerHTML = `<div class="student-top"><span class="avatar large peach">${avatar}</span><span class="status">Подключён</span></div><h3></h3><p></p><div class="skill-line"><span style="--p:0%"></span></div><div class="student-stats"><span><b>0</b> занятий</span><span><b>0</b> заданий</span><span><b>новый</b> профиль</span></div><button data-open-person>Открыть карточку ↗</button>`;
+    card.querySelector('h3').textContent = name;
+    card.querySelector('p').textContent = request.student_email || 'Профиль ученика';
+    const button = card.querySelector('[data-open-person]');
+    button.dataset.name = name;
+    button.dataset.course = 'Новое обучение';
+    button.dataset.avatar = avatar;
+    button.addEventListener('click', () => openPersonWorkspace({ name, course: 'Новое обучение', avatar }, 'course'));
+    grid.append(card);
+  });
+  const pendingCount = requests.filter(request => request.status === 'pending').length;
+  document.querySelector('.nav-item[data-view="students"] .nav-count')?.replaceChildren(document.createTextNode(String(activeRequests.length + pendingCount)));
+  document.querySelectorAll('[data-student-filter]').forEach(button => {
+    const labels = { all: `Все · ${activeRequests.length}`, student: `Ученики · ${activeRequests.length}`, group: 'Группы · 0' };
+    button.textContent = labels[button.dataset.studentFilter] || button.textContent;
+  });
+  applyStudentFilters();
+}
+
+function renderConnectionRequests(requests = []) {
+  if (!connectionRequestsPanel || !connectionRequestList) return;
+  connectionRequestsPanel.hidden = false;
+  const pending = requests.filter(request => request.status === 'pending');
+  connectionRequestList.replaceChildren();
+  if (connectionRequestsState) {
+    connectionRequestsState.textContent = pending.length
+      ? `${pending.length} ${pending.length === 1 ? 'новая заявка ждёт решения.' : 'новые заявки ждут решения.'}`
+      : 'Новых заявок пока нет. Когда ученик введёт ваш код, он появится здесь.';
+  }
+  if (!pending.length) return;
+  pending.forEach(request => {
+    const name = connectionStudentName(request);
+    const item = document.createElement('div');
+    item.className = 'connection-request';
+    item.dataset.connectionId = request.connection_id;
+    const avatar = document.createElement('span');
+    avatar.className = 'avatar peach';
+    avatar.textContent = initialsFromName(name);
+    const info = document.createElement('div');
+    const title = document.createElement('h4');
+    title.textContent = name;
+    const email = document.createElement('p');
+    email.textContent = request.student_email || 'email не указан';
+    const date = document.createElement('small');
+    date.textContent = `Отправлено ${formatAdminDate(request.created_at)}`;
+    info.append(title, email, date);
+    const actions = document.createElement('div');
+    actions.className = 'connection-request-actions';
+    const accept = document.createElement('button');
+    accept.type = 'button';
+    accept.dataset.connectionAction = 'accept';
+    accept.textContent = 'Принять';
+    const reject = document.createElement('button');
+    reject.type = 'button';
+    reject.dataset.connectionAction = 'reject';
+    reject.textContent = 'Отклонить';
+    actions.append(accept, reject);
+    item.append(avatar, info, actions);
+    connectionRequestList.append(item);
+  });
+}
+
+async function loadTeacherConnections() {
+  const client = window.ecoleSupabase;
+  const userId = window.ecoleCurrentSession?.user?.id;
+  if (!connectionRequestsPanel || window.ecoleUserRole === 'student') return;
+  if (!client || !userId) {
+    connectionRequestsPanel.hidden = true;
+    return;
+  }
+  connectionRequestsPanel.hidden = false;
+  if (connectionRequestsState) connectionRequestsState.textContent = 'Проверяем заявки…';
+  const { data, error } = await client.rpc('get_teacher_connection_requests');
+  if (error) {
+    if (connectionRequestsState) connectionRequestsState.textContent = 'Чтобы видеть заявки, обновите SQL-файл в Supabase.';
+    showToast(`Заявки не загрузились: ${error.message}`);
+    return;
+  }
+  renderConnectionRequests(data || []);
+  renderConnectedStudents(data || []);
+}
+
+async function updateTeacherConnection(connectionId, action) {
+  const client = window.ecoleSupabase;
+  if (!client || !connectionId) return;
+  const fn = action === 'accept' ? 'accept_teacher_connection' : 'reject_teacher_connection';
+  const label = action === 'accept' ? 'принимаем' : 'отклоняем';
+  const item = document.querySelector(`[data-connection-id="${connectionId}"]`);
+  item?.querySelectorAll('button').forEach(button => { button.disabled = true; });
+  showToast(`Заявку ${label}…`);
+  const { error } = await client.rpc(fn, { p_connection_id: connectionId });
+  if (error) {
+    item?.querySelectorAll('button').forEach(button => { button.disabled = false; });
+    showToast(`Не удалось обновить заявку: ${error.message}`);
+    return;
+  }
+  showToast(action === 'accept' ? 'Ученик добавлен' : 'Заявка отклонена');
+  loadTeacherConnections();
+}
+
+document.getElementById('refreshConnectionRequests')?.addEventListener('click', loadTeacherConnections);
+connectionRequestList?.addEventListener('click', event => {
+  const button = event.target.closest('[data-connection-action]');
+  if (!button) return;
+  const item = button.closest('[data-connection-id]');
+  updateTeacherConnection(item?.dataset.connectionId, button.dataset.connectionAction);
+});
 
 let activePerson = { name: 'Маша Соколова', course: '3D Generalist', avatar: 'МС' };
 
@@ -1402,6 +1540,7 @@ document.addEventListener('ecole:session', event => {
   if (userId) {
     loadSavedLessons();
     loadTeacherInviteCode();
+    loadTeacherConnections();
   }
   if (userId && trackedSessionUser !== userId) {
     trackedSessionUser = userId;

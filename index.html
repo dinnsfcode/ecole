@@ -473,6 +473,14 @@
       <section class="view" id="students" aria-labelledby="students-title">
         <div class="page-intro reveal"><span class="kicker"><span></span> Ваша практика</span><h1 id="students-title">Ученики<br>и <em>группы.</em></h1></div>
         <div class="toolbar panel reveal"><div class="search">⌕ <input id="studentSearch" placeholder="Найти ученика или группу"></div><div class="filter-pills student-filters"><button class="active" data-student-filter="all">Все · 15</button><button data-student-filter="student">Ученики · 12</button><button data-student-filter="group">Группы · 3</button></div><button class="black-button">＋ Добавить</button></div>
+        <article class="connection-requests panel reveal" id="connectionRequestsPanel" hidden>
+          <div class="card-head">
+            <div><span class="eyebrow">Приглашения</span><h3>Заявки на подключение</h3></div>
+            <button class="mini-button" id="refreshConnectionRequests" type="button">Обновить</button>
+          </div>
+          <p class="connection-requests-note" id="connectionRequestsState">Проверяем, кто ввёл ваш код преподавателя…</p>
+          <div class="connection-request-list" id="connectionRequestList"></div>
+        </article>
         <div class="students-grid">
           <article class="student-card featured reveal" data-kind="student"><div class="student-top"><span class="avatar large peach">МС</span><span class="status">В процессе</span></div><h3>Маша Соколова</h3><p>3D Generalist · с нуля</p><div class="skill-line"><span style="--p:74%"></span></div><div class="student-stats"><span><b>12</b> занятий</span><span><b>74%</b> путь</span><span><b>2</b> работы</span></div><button data-open-person data-name="Маша Соколова" data-course="3D Generalist" data-avatar="МС">Открыть карточку ↗</button></article>
           <article class="student-card reveal" data-kind="student"><div class="student-top"><span class="avatar large lilac">ИВ</span><span class="status pale">Сегодня, 17:00</span></div><h3>Илья Ветров</h3><p>UI Design · junior</p><div class="skill-line"><span style="--p:42%"></span></div><div class="student-stats"><span><b>7</b> занятий</span><span><b>42%</b> путь</span><span><b>1</b> проект</span></div><button data-open-person data-name="Илья Ветров" data-course="UI Design" data-avatar="ИВ">Открыть карточку ↗</button></article>
