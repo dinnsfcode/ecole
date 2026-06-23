@@ -510,6 +510,137 @@ const lessonColorClasses = ['rose-event', 'lavender-event', 'blue-event', 'peach
 let selectedNewLessonColor = 'lavender-event';
 let activeLessonButton = null;
 
+function moscowLessonDateTime(dateValue, timeValue) {
+  return new Date(`${dateValue}T${timeValue}:00+03:00`);
+}
+
+function initialsFromName(value) {
+  return String(value || 'Урок').trim().split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase() || 'У';
+}
+
+function normalizeLessonFormat(formatValue) {
+  const text = String(formatValue || '').toLowerCase();
+  if (text.includes('груп')) return 'mixed';
+  if (text.includes('мент')) return 'online';
+  return 'online';
+}
+
+function lessonGridPlacement(startsAt, duration) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Moscow',
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).formatToParts(startsAt).reduce((acc, part) => {
+    acc[part.type] = part.value;
+    return acc;
+  }, {});
+  const weekdayMap = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+  const gridDay = weekdayMap[parts.weekday] || 1;
+  const hours = Number(parts.hour);
+  const minutes = Number(parts.minute);
+  const gridRow = Math.max(1, (hours - 9) * 2 + Math.floor(minutes / 30) + 1);
+  const gridSpan = Math.max(2, Math.min(24 - gridRow + 1, Math.round(duration / 30)));
+  return { gridDay, gridRow, gridSpan };
+}
+
+function formatLessonTimeRange(startsAt, duration) {
+  const end = new Date(startsAt.getTime() + duration * 60000);
+  const formatter = new Intl.DateTimeFormat('ru-RU', {
+    timeZone: 'Europe/Moscow',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  return `${formatter.format(startsAt)}–${formatter.format(end)}`;
+}
+
+function formatLessonDateLabel(startsAt) {
+  const label = new Intl.DateTimeFormat('ru-RU', {
+    timeZone: 'Europe/Moscow',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long'
+  }).format(startsAt);
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function renderLessonEvent(lessonId, data, placement, colorClass = 'lavender-event') {
+  const eventLayer = document.querySelector('.event-layer');
+  if (!eventLayer) return null;
+  const event = document.createElement('button');
+  event.className = `calendar-event ${colorClass}`;
+  event.dataset.lesson = lessonId;
+  event.dataset.persistedLesson = 'true';
+  event.style.gridColumn = String(placement.gridDay);
+  event.style.gridRow = `${placement.gridRow} / span ${placement.gridSpan}`;
+  const time = document.createElement('small');
+  time.textContent = data.time;
+  const heading = document.createElement('strong');
+  heading.textContent = data.title;
+  const meta = document.createElement('span');
+  meta.textContent = `${data.student} · ${data.course.split(' · ')[0]}`;
+  const badge = document.createElement('i');
+  badge.textContent = data.course.includes('Груп') ? 'GR' : data.course.includes('Мент') ? 'ME' : '1:1';
+  event.append(time, heading, meta, badge);
+  event.addEventListener('click', () => openLessonDrawer(event));
+  eventLayer.querySelector('.workspace-empty')?.remove();
+  eventLayer.append(event);
+  return event;
+}
+
+function lessonRowToUi(row) {
+  const startsAt = new Date(row.starts_at);
+  const duration = Number(row.duration_minutes || 60);
+  let colorClass = 'lavender-event';
+  let uiFormat = row.student_summary || 'Индивидуальное';
+  try {
+    const notes = JSON.parse(row.teacher_notes || '{}');
+    if (lessonColorClasses.includes(notes.colorClass)) colorClass = notes.colorClass;
+    if (notes.uiFormat) uiFormat = notes.uiFormat;
+  } catch (_error) {}
+  const participant = row.location || 'Ученик';
+  return {
+    colorClass,
+    placement: lessonGridPlacement(startsAt, duration),
+    data: {
+      student: participant,
+      avatar: initialsFromName(participant),
+      course: `${uiFormat} · сохранено`,
+      date: formatLessonDateLabel(startsAt),
+      time: formatLessonTimeRange(startsAt, duration),
+      number: 'Сохранено',
+      title: row.title,
+      description: 'Урок сохранён в Supabase. Домашку и материалы подключим следующим шагом.',
+      readiness: 20,
+      status: 'Сохранено в базе',
+      color: colorClass
+    }
+  };
+}
+
+async function loadSavedLessons() {
+  const client = window.ecoleSupabase;
+  const userId = window.ecoleCurrentSession?.user?.id;
+  if (!client || !userId || window.ecoleUserRole === 'student') return;
+  const { data, error } = await client
+    .from('lessons')
+    .select('id,title,starts_at,duration_minutes,format,location,teacher_notes,student_summary,group_id')
+    .eq('teacher_id', userId)
+    .order('starts_at', { ascending: true });
+  if (error) {
+    showToast(`Уроки не загрузились из Supabase: ${error.message}`);
+    return;
+  }
+  document.querySelectorAll('[data-persisted-lesson="true"]').forEach(item => item.remove());
+  (data || []).forEach(row => {
+    const lessonId = `db-${row.id}`;
+    const prepared = lessonRowToUi(row);
+    lessonData[lessonId] = prepared.data;
+    renderLessonEvent(lessonId, prepared.data, prepared.placement, prepared.colorClass);
+  });
+}
+
 function eventColorClass(eventButton) {
   return lessonColorClasses.find(color => eventButton?.classList.contains(color)) || 'lavender-event';
 }
@@ -531,7 +662,7 @@ document.querySelectorAll('[data-new-lesson-color]').forEach(button => button.ad
   document.getElementById('newLessonColorName').textContent = button.dataset.colorName;
 }));
 
-function createNewLesson() {
+async function createNewLesson() {
   const titleInput = document.getElementById('newLessonTitle');
   const participantInput = document.getElementById('newLessonParticipant');
   const dateInput = document.getElementById('newLessonDate');
@@ -558,6 +689,48 @@ function createNewLesson() {
   const format = formatInput.value;
   const initials = participant.split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
   const dateLabel = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).format(lessonDate);
+
+  const client = window.ecoleSupabase;
+  const userId = window.ecoleCurrentSession?.user?.id;
+  if (!client || !userId) {
+    showToast('Сначала войдите в аккаунт, чтобы сохранить урок');
+    return;
+  }
+
+  const submitButton = document.querySelector('.modal-submit');
+  const originalButtonHtml = submitButton?.innerHTML;
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.innerHTML = 'Сохраняем… <span>↗</span>';
+  }
+
+  const { error } = await client
+    .from('lessons')
+    .insert({
+      teacher_id: userId,
+      group_id: null,
+      title,
+      starts_at: moscowLessonDateTime(dateInput.value, timeInput.value).toISOString(),
+      duration_minutes: duration,
+      format: normalizeLessonFormat(format),
+      location: participant,
+      teacher_notes: JSON.stringify({
+        colorClass,
+        uiFormat: format,
+        temporaryParticipantLabel: participant
+      }),
+      student_summary: format
+    });
+
+  if (submitButton) {
+    submitButton.disabled = false;
+    submitButton.innerHTML = originalButtonHtml;
+  }
+
+  if (error) {
+    showToast(`Урок не сохранился в Supabase: ${error.message}`);
+    return;
+  }
 
   lessonData[lessonId] = {
     student: participant,
@@ -802,6 +975,45 @@ function updateProfilePreview(markDirty = true) {
   }
 }
 
+async function loadTeacherInviteCode() {
+  const card = document.querySelector('[data-teacher-code-card]');
+  const codeEl = document.getElementById('teacherInviteCode');
+  const state = document.getElementById('teacherInviteCodeState');
+  const client = window.ecoleSupabase;
+  const userId = window.ecoleCurrentSession?.user?.id;
+  if (!card || !codeEl) return;
+  if (window.ecoleUserRole === 'student') {
+    card.hidden = true;
+    return;
+  }
+  card.hidden = false;
+  if (!client || !userId) {
+    codeEl.textContent = '—';
+    if (state) state.textContent = 'Войдите в аккаунт, чтобы получить код преподавателя.';
+    return;
+  }
+  codeEl.textContent = 'Загрузка…';
+  const { data, error } = await client.rpc('ensure_teacher_invite_code');
+  if (error) {
+    codeEl.textContent = 'Не создан';
+    if (state) state.textContent = `Не удалось получить код: ${error.message}`;
+    return;
+  }
+  codeEl.textContent = data;
+  if (state) state.textContent = 'Код хранится в Supabase и привязан к вашему профилю.';
+}
+
+document.getElementById('copyTeacherInviteCode')?.addEventListener('click', async () => {
+  const code = document.getElementById('teacherInviteCode')?.textContent?.trim();
+  if (!code || code === 'Загрузка…' || code === 'Не создан') return;
+  try {
+    await navigator.clipboard.writeText(code);
+    showToast('Код преподавателя скопирован');
+  } catch (_error) {
+    showToast(`Код преподавателя: ${code}`);
+  }
+});
+
 Object.values(profileFields).forEach(field => field?.addEventListener('input', () => updateProfilePreview(true)));
 
 avatarInput?.addEventListener('change', () => {
@@ -1019,6 +1231,10 @@ document.addEventListener('ecole:session', event => {
   updateMoscowInterface(event.detail.session);
   applyRoleInterface(event.detail.session, event.detail.role);
   const userId = event.detail.session?.user?.id;
+  if (userId) {
+    loadSavedLessons();
+    loadTeacherInviteCode();
+  }
   if (userId && trackedSessionUser !== userId) {
     trackedSessionUser = userId;
     trackActivity('sign_in', event.detail.role === 'admin' ? 'admin-dashboard' : event.detail.role === 'student' ? 'student-home' : 'today');

@@ -448,6 +448,18 @@
               <label class="field-wide"><span>Предмет или направление <b>*</b></span><input id="profileSubject" value="" required placeholder="Например: английский язык, Python, Blender"></label>
               <label class="field-wide"><span>Коротко о преподавании</span><textarea id="profileDescription" rows="6" maxlength="500" placeholder="Расскажите, чему вы обучаете и как проходят ваши занятия"></textarea><small><span id="descriptionCount">0</span> / 500</small></label>
             </div>
+            <section class="teacher-code-card" data-teacher-code-card>
+              <div>
+                <span class="field-caption">Код преподавателя</span>
+                <h2>Подключение учеников</h2>
+                <p>Дайте этот код ученику. Он введёт его в своём профиле, а вы сможете принять заявку на подключение.</p>
+              </div>
+              <div class="teacher-code-box">
+                <code id="teacherInviteCode">Загрузка…</code>
+                <button type="button" id="copyTeacherInviteCode">Скопировать</button>
+              </div>
+              <small id="teacherInviteCodeState">Код хранится в Supabase и привязан к вашему профилю.</small>
+            </section>
           </form>
 
           <aside class="profile-preview-card reveal">
