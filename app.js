@@ -477,6 +477,12 @@ document.querySelectorAll('[data-today-lesson]').forEach(button => button.addEve
 }));
 
 function openTodayLesson(lessonId) {
+  const savedRow = savedLessonRowsCache.find(row => `db-${row.id}` === lessonId);
+  if (savedRow && lessonActionState(savedRow).state === 'start') {
+    switchView('lesson');
+    showToast('Пространство урока открыто');
+    return;
+  }
   const minutes = remainingMinutes(lessonId);
   const calendarEvent = document.querySelector(`.calendar-event[data-lesson="${lessonId}"]`);
   if (Number.isFinite(minutes) && minutes <= 30 && minutes > -120) {
@@ -491,7 +497,10 @@ function openTodayLesson(lessonId) {
 }
 
 updateTodayLessonActions();
-window.setInterval(updateTodayLessonActions, 30000);
+window.setInterval(() => {
+  updateTodayLessonActions();
+  refreshSavedLessonActions();
+}, 30000);
 
 const modal = document.getElementById('modal');
 const openModal = () => {
@@ -605,7 +614,35 @@ function lessonCountdownText(minutes) {
   return 'завершён';
 }
 
+let savedLessonRowsCache = [];
+
+function lessonActionState(row) {
+  const start = new Date(row.starts_at).getTime();
+  const end = start + Number(row.duration_minutes || 60) * 60000;
+  const now = Date.now();
+  if (now > end) return { label: 'Посмотреть итоги', state: 'past' };
+  if (now >= start - 10 * 60000 && now <= end) return { label: 'Зайти на урок', state: 'start' };
+  return { label: 'Подготовиться', state: 'prepare' };
+}
+
+function refreshSavedLessonActions() {
+  if (!savedLessonRowsCache.length) return;
+  savedLessonRowsCache.forEach(row => {
+    const lessonId = `db-${row.id}`;
+    const action = lessonActionState(row);
+    document.querySelectorAll(`[data-today-lesson="${lessonId}"]`).forEach(button => {
+      button.dataset.actionState = action.state;
+      if (button.querySelector('span')) {
+        button.firstChild.textContent = `${action.label} `;
+      } else {
+        button.textContent = `${action.label} ↗`;
+      }
+    });
+  });
+}
+
 function updateTodayFromLessons(rows = []) {
+  savedLessonRowsCache = rows;
   const today = moscowDateKey();
   const todayRows = rows
     .filter(row => lessonStartDateKey(row) === today)
@@ -650,7 +687,9 @@ function updateTodayFromLessons(rows = []) {
         content.append(type, title, participant);
         const button = document.createElement('button');
         button.dataset.todayLesson = lessonId;
-        button.textContent = 'Подготовиться ↗';
+        const action = lessonActionState(row);
+        button.dataset.actionState = action.state;
+        button.textContent = `${action.label} ↗`;
         button.addEventListener('click', () => openTodayLesson(lessonId));
         item.append(time, content, button);
         agenda.append(item);
@@ -671,7 +710,8 @@ function updateTodayFromLessons(rows = []) {
   const countdown = lessonCountdownText(minutes);
   if (summary) summary.textContent = `Первый урок в ${prepared.time.split('–')[0]} · ${countdown}`;
   if (nextLesson) {
-    nextLesson.innerHTML = `<div class="card-head"><span class="eyebrow">Ближайший урок</span><span class="live-in" id="nextLessonCountdown">${countdown}</span></div><div class="session-time">${prepared.time.split('–')[0]} <span>— ${prepared.time.split('–')[1] || ''}</span></div><h3>${prepared.title}</h3><p>${prepared.student}</p><button data-today-lesson="db-${nearest.id}" id="nextLessonAction">Подготовиться <span>↗</span></button>`;
+    const action = lessonActionState(nearest);
+    nextLesson.innerHTML = `<div class="card-head"><span class="eyebrow">Ближайший урок</span><span class="live-in" id="nextLessonCountdown">${countdown}</span></div><div class="session-time">${prepared.time.split('–')[0]} <span>— ${prepared.time.split('–')[1] || ''}</span></div><h3>${prepared.title}</h3><p>${prepared.student}</p><button data-today-lesson="db-${nearest.id}" data-action-state="${action.state}" id="nextLessonAction">${action.label} <span>↗</span></button>`;
     nextLesson.querySelector('[data-today-lesson]')?.addEventListener('click', () => openTodayLesson(`db-${nearest.id}`));
   }
 }
@@ -1370,6 +1410,71 @@ document.addEventListener('ecole:session', event => {
   if (!userId) trackedSessionUser = null;
 });
 document.getElementById('adminRefresh')?.addEventListener('click', loadAdminDashboard);
+const studentInviteModal = document.getElementById('studentInviteModal');
+const studentInviteInput = document.getElementById('studentInviteCodeInput');
+const studentInviteMessage = document.getElementById('studentInviteMessage');
+const studentInviteSubmit = document.getElementById('submitStudentInviteCode');
+
+function setStudentInviteMessage(text = '', type = '') {
+  if (!studentInviteMessage) return;
+  studentInviteMessage.textContent = text;
+  studentInviteMessage.className = `auth-message${type ? ` ${type}` : ''}`;
+}
+
+function openStudentInviteModal() {
+  if (!studentInviteModal) return;
+  studentInviteModal.classList.add('open');
+  studentInviteModal.setAttribute('aria-hidden', 'false');
+  setStudentInviteMessage();
+  window.setTimeout(() => studentInviteInput?.focus(), 80);
+}
+
+function closeStudentInviteModal() {
+  studentInviteModal?.classList.remove('open');
+  studentInviteModal?.setAttribute('aria-hidden', 'true');
+}
+
+document.addEventListener('click', event => {
+  if (!event.target.closest('[data-student-action="join"]')) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  openStudentInviteModal();
+}, true);
+
+document.getElementById('closeStudentInviteModal')?.addEventListener('click', closeStudentInviteModal);
+studentInviteModal?.addEventListener('click', event => {
+  if (event.target === studentInviteModal) closeStudentInviteModal();
+});
+studentInviteSubmit?.addEventListener('click', async () => {
+  const client = window.ecoleSupabase;
+  const code = studentInviteInput?.value.trim();
+  if (!client || !window.ecoleCurrentSession?.user) {
+    setStudentInviteMessage('Сначала войдите в аккаунт ученика.', 'error');
+    return;
+  }
+  if (!code) {
+    setStudentInviteMessage('Введите код преподавателя.', 'error');
+    studentInviteInput?.focus();
+    return;
+  }
+  studentInviteSubmit.disabled = true;
+  studentInviteSubmit.innerHTML = 'Отправляем… <span>→</span>';
+  const { error } = await client.rpc('request_teacher_connection', { p_code: code });
+  studentInviteSubmit.disabled = false;
+  studentInviteSubmit.innerHTML = 'Отправить заявку <span>→</span>';
+  if (error) {
+    const text = String(error.message || '').toLowerCase();
+    const message = text.includes('not found')
+      ? 'Код не найден. Проверьте, что скопировали его полностью.'
+      : text.includes('self')
+        ? 'Нельзя подключиться к своему же коду преподавателя.'
+        : `Не удалось отправить заявку: ${error.message}`;
+    setStudentInviteMessage(message, 'error');
+    return;
+  }
+  setStudentInviteMessage('Заявка отправлена. Преподаватель увидит её у себя и сможет принять.', 'success');
+  showToast('Заявка преподавателю отправлена');
+});
 document.addEventListener('click', event => {
   if (!event.target.closest('[data-student-action="join"]')) return;
   showToast('Коды приглашения подключим вместе с таблицами курсов в Supabase');
