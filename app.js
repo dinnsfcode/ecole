@@ -229,6 +229,10 @@ function renderConnectedStudents(requests = []) {
   const grid = document.querySelector('.students-grid');
   if (!grid) return;
   const activeRequests = requests.filter(request => request.status === 'active');
+  const studentsHeaderCount = document.getElementById('studentsHeaderCount');
+  const groupsHeaderCount = document.getElementById('groupsHeaderCount');
+  if (studentsHeaderCount) studentsHeaderCount.textContent = String(activeRequests.length);
+  if (groupsHeaderCount) groupsHeaderCount.textContent = '0';
   if (!activeRequests.length) {
     grid.innerHTML = emptyStateMarkup('Добавьте первого ученика', 'Когда вы примете заявку, ученик появится здесь.', 'student', '＋ Добавить ученика');
     document.querySelector('.nav-item[data-view="students"] .nav-count')?.replaceChildren(document.createTextNode(String(requests.filter(request => request.status === 'pending').length)));
@@ -1973,7 +1977,7 @@ try {
 updateProfilePreview(false);
 
 function emptyStateMarkup(title, text, action = '', actionLabel = '') {
-  return `<div class="workspace-empty">
+  return `<div class="workspace-empty reveal">
     <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 8.5h16l6 6V38a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3V11.5a3 3 0 0 1 3-3Z"/><path d="M30 8.5v8h6M18 25h12M18 31h8"/></svg>
     <strong>${title}</strong><p>${text}</p>
     ${action ? `<button class="soft-button" type="button" data-empty-action="${action}">${actionLabel}</button>` : ''}
@@ -2037,7 +2041,13 @@ function initialiseEmptyWorkspace() {
   const libraryFeature = document.querySelector('.library-feature');
   if (libraryFeature) libraryFeature.hidden = true;
   const resourceColumn = document.querySelector('.resource-column');
-  if (resourceColumn) resourceColumn.insertAdjacentHTML('beforeend', emptyStateMarkup('Библиотека пока пуста', 'Добавляйте файлы, ссылки и шаблоны, чтобы использовать их на занятиях.', 'material', '＋ Добавить материал'));
+  if (resourceColumn) {
+    resourceColumn.insertAdjacentHTML('beforeend', emptyStateMarkup('Библиотека пока пуста', 'Добавляйте файлы, ссылки и шаблоны, чтобы использовать их на занятиях.', 'material', '＋ Добавить материал'));
+    const emptyLibrary = resourceColumn.querySelector('.workspace-empty');
+    if (emptyLibrary && window.gsap && !reducedMotion) {
+      gsap.fromTo(emptyLibrary, { y: 22, opacity: 0 }, { y: 0, opacity: 1, duration: .42, ease: 'power3.out' });
+    }
+  }
 
   const previewStats = document.querySelectorAll('.preview-meta b');
   if (previewStats[0]) previewStats[0].textContent = '0';

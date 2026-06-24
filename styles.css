@@ -344,3 +344,29 @@ body[data-user-role="teacher"] .topbar-actions{gap:10px}
 .drawer-action.danger{border:1px solid rgba(190,68,82,.24);background:rgba(255,255,255,.8);color:#a82b3a}
 .drawer-action.danger:hover{background:#a82b3a;color:#fff}
 .calendar-event i{display:none!important}
+
+/* Workspace headers and readable small text */
+.compact-workspace-header{margin:10px 0 18px;padding:24px 26px;border:1px solid rgba(255,255,255,.72);border-radius:28px;background:linear-gradient(145deg,rgba(255,252,248,.78),rgba(246,232,237,.48));box-shadow:0 18px 55px rgba(55,40,50,.07)}
+.compact-workspace-header h1{font-size:clamp(34px,3.4vw,54px);letter-spacing:-.065em;margin:12px 0 10px}
+.compact-workspace-header p{max-width:680px;font-size:16px;line-height:1.55;color:#625d60}
+.header-mini-stats{display:flex;gap:10px;align-items:stretch;flex:0 0 auto}
+.header-mini-stats span{min-width:110px;display:grid;gap:4px;padding:13px 15px;border:1px solid rgba(17,17,17,.08);border-radius:18px;background:rgba(255,255,255,.62);color:#6d6569;font-size:13px;font-weight:750}
+.header-mini-stats b{font:600 26px/1 Unbounded,sans-serif;color:#171717;letter-spacing:-.05em}
+.connection-requests .card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.connection-refresh{min-width:96px;min-height:38px;padding:0 14px;white-space:nowrap;font-size:12px}
+.connection-requests-note{font-size:14px;line-height:1.55}
+.connection-request p,.connection-request small{font-size:12px}
+.connection-request-actions button{font-size:12px}
+.resource-head{justify-content:flex-start}
+.resource-column>.workspace-empty{animation:ecole-rise-in .42s ease both}
+@keyframes ecole-rise-in{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.resource-column>.workspace-empty{animation:none}}
+
+body{font-size:15px}
+small,.tag,.status,.item-state,.student-card>p,.student-stats span,.resource p,.resource>button,.filter-pills button,.text-action,.soft-button,.mini-button,.profile small,.nav-count,.connection-request small{font-size:max(12px,.75rem)}
+.eyebrow,.kicker{font-size:12px}
+.student-card>button,.resource h3,.toolbar input,.workspace-search input,.connection-request h4{font-size:14px}
+.student-stats b{font-size:16px}
+.student-card h3{font-size:24px}
+.status{padding:7px 10px}
+@media(max-width:760px){.compact-workspace-header{padding:20px 18px}.compact-workspace-header h1{font-size:32px}.header-mini-stats{width:100%;margin-top:16px}.header-mini-stats span{flex:1;min-width:0}.connection-requests .card-head{align-items:flex-start}.connection-refresh{min-height:42px}}

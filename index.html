@@ -471,12 +471,22 @@
       </section>
 
       <section class="view" id="students" aria-labelledby="students-title">
-        <div class="page-intro reveal"><span class="kicker"><span></span> Ваша практика</span><h1 id="students-title">Ученики<br>и <em>группы.</em></h1></div>
+        <header class="workspace-page-header compact-workspace-header reveal">
+          <div>
+            <div class="kicker"><span></span> Учебные связи</div>
+            <h1 id="students-title">Ученики и группы</h1>
+            <p>Подключённые ученики, заявки и будущие группы собраны в одном рабочем списке.</p>
+          </div>
+          <div class="header-mini-stats" aria-label="Сводка по ученикам">
+            <span><b id="studentsHeaderCount">0</b> учеников</span>
+            <span><b id="groupsHeaderCount">0</b> групп</span>
+          </div>
+        </header>
         <div class="toolbar panel reveal"><div class="search">⌕ <input id="studentSearch" placeholder="Найти ученика или группу"></div><div class="filter-pills student-filters"><button class="active" data-student-filter="all">Все · 15</button><button data-student-filter="student">Ученики · 12</button><button data-student-filter="group">Группы · 3</button></div><button class="black-button">＋ Добавить</button></div>
         <article class="connection-requests panel reveal" id="connectionRequestsPanel" hidden>
           <div class="card-head">
             <div><span class="eyebrow">Приглашения</span><h3>Заявки на подключение</h3></div>
-            <button class="mini-button" id="refreshConnectionRequests" type="button">Обновить</button>
+            <button class="soft-button connection-refresh" id="refreshConnectionRequests" type="button">Обновить</button>
           </div>
           <p class="connection-requests-note" id="connectionRequestsState">Проверяем, кто ввёл ваш код преподавателя…</p>
           <div class="connection-request-list" id="connectionRequestList"></div>
@@ -579,11 +589,18 @@
       </section>
 
       <section class="view" id="library" aria-labelledby="library-title">
-        <div class="page-intro reveal"><span class="kicker"><span></span> Библиотека</span><h1 id="library-title">Знания, собранные<br>в красивую <em>систему.</em></h1></div>
+        <header class="workspace-page-header compact-workspace-header reveal">
+          <div>
+            <div class="kicker"><span></span> Материалы</div>
+            <h1 id="library-title">Библиотека преподавателя</h1>
+            <p>Файлы, ссылки, шаблоны и заметки, которые можно прикреплять к урокам и ученикам.</p>
+          </div>
+          <button class="black-button">＋ Материал</button>
+        </header>
         <div class="library-layout">
           <article class="library-feature reveal"><span class="eyebrow">Коллекция месяца</span><h2>Visual<br>storytelling</h2><p>18 материалов · 6 уроков</p><div class="shape shape-a"></div><div class="shape shape-b"></div><button>Открыть коллекцию ↗</button></article>
           <div class="resource-column">
-            <div class="resource-head reveal"><div class="filter-pills"><button class="active">Все</button><button>Уроки</button><button>Файлы</button><button>Шаблоны</button></div><button class="black-button">＋ Материал</button></div>
+            <div class="resource-head reveal"><div class="filter-pills"><button class="active">Все</button><button>Уроки</button><button>Файлы</button><button>Шаблоны</button></div></div>
             <article class="resource reveal"><span class="resource-type rose-bg">PDF</span><div><h3>Композиция в кадре</h3><p>Теория · 24 страницы</p></div><span class="tag">3D</span><button>↗</button></article>
             <article class="resource reveal"><span class="resource-type lilac-bg">LESSON</span><div><h3>Свет: от базы до атмосферы</h3><p>Урок · 80 минут</p></div><span class="tag">Blender</span><button>↗</button></article>
             <article class="resource reveal"><span class="resource-type blue-bg">FIG</span><div><h3>UI critique canvas</h3><p>Шаблон для разбора</p></div><span class="tag">Design</span><button>↗</button></article>
